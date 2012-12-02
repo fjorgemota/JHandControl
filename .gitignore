@@ -4,3 +4,7 @@
 *.jar
 *.war
 *.ear
+
+# Aditional Files #
+*.mp4
+*.pdf
