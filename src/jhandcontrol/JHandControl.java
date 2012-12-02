@@ -18,9 +18,6 @@ import jhandcontrol.data.JFrameHand;
 import jhandcontrol.data.JHandDetection;
 
 /**
- * @author VisionLab/PUC-Rio
- */
-/**
  *
  * @author fernando
  */
