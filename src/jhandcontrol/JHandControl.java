@@ -4,6 +4,8 @@
  */
 package jhandcontrol;
 
+import jhandcontrol.data.HandStatus;
+import jhandcontrol.calibrator.Calibrator;
 import com.googlecode.javacpp.Loader;
 import com.googlecode.javacv.FrameGrabber;
 import static com.googlecode.javacv.cpp.opencv_core.*;
@@ -12,8 +14,8 @@ import static com.googlecode.javacv.cpp.opencv_highgui.*;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import jhandcontrol.utils.CvSeqUtils;
-import jhandcontrol.utils.JFrameHand;
-import jhandcontrol.utils.JHandDetection;
+import jhandcontrol.data.JFrameHand;
+import jhandcontrol.data.JHandDetection;
 
 /**
  * @author VisionLab/PUC-Rio

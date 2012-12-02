@@ -3,14 +3,15 @@
  * and open the template in the editor.
  */
 package jhandcontrol.utils;
+import jhandcontrol.data.JHandDetection;
 import com.googlecode.javacv.cpp.opencv_core.*;
 import static com.googlecode.javacv.cpp.opencv_core.*;
 import static com.googlecode.javacv.cpp.opencv_highgui.*;
 import static com.googlecode.javacv.cpp.opencv_imgproc.*;
 import static com.googlecode.javacv.cpp.opencv_contrib.*;
 import java.util.ArrayList;
-import jhandcontrol.Calibrator;
-import jhandcontrol.HandStatus;
+import jhandcontrol.calibrator.Calibrator;
+import jhandcontrol.data.HandStatus;
 
 /**
  *
