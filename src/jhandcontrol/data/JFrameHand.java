@@ -16,7 +16,7 @@ import jhandcontrol.JHandControl;
  * @author Fernando
  */
 public class JFrameHand implements Cloneable{
-    private IplImage coloredImage;
+    private IplImage coloredImage, binaryImage, yCrCbImage;
 
     public JFrameHand(IplImage theImage) {
         /*
@@ -33,7 +33,6 @@ public class JFrameHand implements Cloneable{
     }
 
     public IplImage getBinaryImage() {
-        IplImage binaryImage;
         /*
          * Cria a imagem binária
          */
@@ -42,13 +41,11 @@ public class JFrameHand implements Cloneable{
         * Colore a imagem binária a partir da escala de cores definida pelo
         * Calibrador
         */
-        IplImage yCrCbImage = this.getYCrCbImage();
+        yCrCbImage = this.getYCrCbImage();
         cvInRangeS(yCrCbImage,
                  JHandControl.getInstance().getCalibrator().getMinScalar(), 
                  JHandControl.getInstance().getCalibrator().getMaxScalar(),
                  binaryImage);
-        yCrCbImage.release();
-        yCrCbImage = null;
         return binaryImage;
         
     }
@@ -61,10 +58,8 @@ public class JFrameHand implements Cloneable{
     }
 
     public ArrayList<JHandDetection> getHands() {
-        IplImage binaryImage = this.getBinaryImage();
+        binaryImage = this.getBinaryImage();
         ArrayList<JHandDetection> result = JHandDetection.detect(binaryImage);
-        binaryImage.release();
-        binaryImage = null;
         return result;
     }
     
@@ -86,7 +81,7 @@ public class JFrameHand implements Cloneable{
         /* 
          * Cria a imagem na escala de cores YCrCb
          */
-        IplImage yCrCbImage = IplImage.create(this.getImageWidth(), this.getImageHeight(), IPL_DEPTH_8U, 3);
+        yCrCbImage = IplImage.create(this.getImageWidth(), this.getImageHeight(), IPL_DEPTH_8U, 3);
         cvCvtColor(this.coloredImage, yCrCbImage, CV_BGR2YCrCb);
         //cvCopy(this.coloredImage, yCrCbImage);
         return yCrCbImage;

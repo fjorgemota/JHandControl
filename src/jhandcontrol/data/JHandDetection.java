@@ -5,9 +5,18 @@
 package jhandcontrol.data;
 
 import com.googlecode.javacpp.Loader;
-import com.googlecode.javacv.cpp.opencv_core.*;
-import static com.googlecode.javacv.cpp.opencv_core.*;
-import static com.googlecode.javacv.cpp.opencv_imgproc.*;
+import com.googlecode.javacv.cpp.opencv_core.CvContour;
+import com.googlecode.javacv.cpp.opencv_core.CvRect;
+import com.googlecode.javacv.cpp.opencv_core.CvSeq;
+import com.googlecode.javacv.cpp.opencv_core.IplImage;
+import static com.googlecode.javacv.cpp.opencv_imgproc.cvApproxPoly;
+import static com.googlecode.javacv.cpp.opencv_imgproc.cvBoundingRect;
+import static com.googlecode.javacv.cpp.opencv_imgproc.CV_POLY_APPROX_DP;
+import static com.googlecode.javacv.cpp.opencv_imgproc.cvContourPerimeter;
+import static com.googlecode.javacv.cpp.opencv_imgproc.CV_RETR_EXTERNAL;
+import static com.googlecode.javacv.cpp.opencv_imgproc.CV_CHAIN_APPROX_SIMPLE;
+import static com.googlecode.javacv.cpp.opencv_imgproc.cvFindContours;
+
 import java.util.ArrayList;
 import jhandcontrol.JHandControl;
 import jhandcontrol.utils.CvSeqUtils;
@@ -17,9 +26,13 @@ import jhandcontrol.utils.CvSeqUtils;
  * @author Fernando
  */
 public class JHandDetection {
-    private CvSeq contour;
+    private CvSeq contour, aprox;
+    private HandStatus status;
+    private CvRect rect;
+    private static CvSeq tempContorno;
     private JHandDetection(CvSeq contorno) {
         this.contour = contorno;
+        this.status = null;
     }
 
     public CvSeq getContour() {
@@ -27,12 +40,16 @@ public class JHandDetection {
     }
 
     public CvSeq getSimplifiedContour() {
-         return cvApproxPoly(this.contour, Loader.sizeof(CvContour.class),
+         this.aprox = cvApproxPoly(this.contour, Loader.sizeof(CvContour.class),
                                  JHandControl.getInstance().getMemStore(), CV_POLY_APPROX_DP, cvContourPerimeter(this.contour) * 0.01, 0);
+         return this.aprox;
     }
 
     public HandStatus getStatus() {
-        return CvSeqUtils.getHandStatus(this);
+        if(this.status == null){
+            this.status = CvSeqUtils.getHandStatus(this);
+        }
+        return this.status;
     }
 
     public int getArea() {
@@ -44,7 +61,8 @@ public class JHandDetection {
     }
 
     public CvRect getRectCountour() {
-        return cvBoundingRect(this.contour, 0);
+        this.rect = cvBoundingRect(this.contour, 0);
+        return this.rect;
     }
 
     public int getWidth() {
@@ -60,22 +78,22 @@ public class JHandDetection {
     }
     
     
-    public synchronized static ArrayList<JHandDetection> detect(IplImage binaryImage){
+    public static ArrayList<JHandDetection> detect(IplImage binaryImage){
         ArrayList<JHandDetection> result = new ArrayList<JHandDetection>();
         if(binaryImage == null || binaryImage.nChannels()!=1 || binaryImage.sizeof()<1){
             //System.out.println("Voltando..");
             return result;
         }
-        CvSeq contorno = new CvSeq(null);
+        tempContorno = new CvSeq(null);
         
         cvFindContours(binaryImage, JHandControl.getInstance().getMemStore(),
-                contorno, Loader.sizeof(CvContour.class), CV_RETR_EXTERNAL,
+                tempContorno, Loader.sizeof(CvContour.class), CV_RETR_EXTERNAL,
                 CV_CHAIN_APPROX_SIMPLE);
-        for (; contorno != null && !contorno.isNull(); contorno = contorno.h_next()) {
-            if(contorno == null || contorno.isNull() || contorno.total() < 2){
+        for (; tempContorno != null && !tempContorno.isNull(); tempContorno = tempContorno.h_next()) {
+            if(tempContorno == null || tempContorno.isNull() || tempContorno.total() < 2){
                 continue;
             }
-            JHandDetection detection = new JHandDetection(contorno);
+            JHandDetection detection = new JHandDetection(tempContorno);
             result.add(detection);
         }
         
