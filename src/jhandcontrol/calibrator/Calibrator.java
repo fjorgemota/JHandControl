@@ -440,7 +440,12 @@ public class Calibrator extends Thread {
              */
             IplImage yCrCbImage = this.image.getYCrCbImage();
             if (this.bfImage != null) {
-                g = this.bfImage.getDrawGraphics();
+                try{
+                    g = this.bfImage.getDrawGraphics();
+                }
+                catch(Exception ex){
+                    continue;
+                }
                 Color oldColor;
                 if (g != null) {
                     Graphics2D g2d = (Graphics2D) g;
