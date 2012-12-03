@@ -48,6 +48,7 @@ public class JFrameHand implements Cloneable{
                  JHandControl.getInstance().getCalibrator().getMaxScalar(),
                  binaryImage);
         yCrCbImage.release();
+        yCrCbImage = null;
         return binaryImage;
         
     }
@@ -63,6 +64,7 @@ public class JFrameHand implements Cloneable{
         IplImage binaryImage = this.getBinaryImage();
         ArrayList<JHandDetection> result = JHandDetection.detect(binaryImage);
         binaryImage.release();
+        binaryImage = null;
         return result;
     }
     

@@ -13,6 +13,8 @@ import static com.googlecode.javacv.cpp.opencv_imgproc.*;
 import static com.googlecode.javacv.cpp.opencv_highgui.*;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import jhandcontrol.utils.CvSeqUtils;
 import jhandcontrol.data.JFrameHand;
 import jhandcontrol.data.JHandDetection;
@@ -23,18 +25,21 @@ import jhandcontrol.data.JHandDetection;
  */
 public class JHandControl extends Thread {
 
-    private ArrayList<JHandDetection> hands;
+    private ArrayList<JHandDetection> hands, bufferHands;
     private Calibrator calibrator;
     private JFrameHand lastFrame;
     private FrameGrabber camera;
     private CvMemStorage memStore;
     private static JHandControl instance;
     private static int DEFAULT_CAMERA = -1;
+    private IplImage image;
     
     public JHandControl(int autoconnect) {
         //this.lastImage = cvLoadImage("imagens/mao.jpg");
         this.hands = new ArrayList<JHandDetection>();
+        this.bufferHands = new ArrayList<JHandDetection>();
         this.memStore = CvMemStorage.create(0);
+        this.image = null;
         this.calibrator = new Calibrator();
         this.calibrator.start();
         /*
@@ -65,6 +70,9 @@ public class JHandControl extends Thread {
         return true;
     }
 
+    public ArrayList<JHandDetection> getHands() {
+        return (ArrayList<JHandDetection>) hands.clone();
+    }
     public boolean close() {
         if (this.camera != null) {
             try {
@@ -77,7 +85,14 @@ public class JHandControl extends Thread {
         }
         return false;
     }
-
+    public void setImage(String image){
+        if(image == null){
+            this.image = null;
+        }
+        else{
+            this.image = cvLoadImage(image);
+        }
+    }
     public Calibrator getCalibrator() {
         return this.calibrator;
     }
@@ -85,8 +100,7 @@ public class JHandControl extends Thread {
         return this.memStore;
     }
     public void run() {
-        BufferedImage image;
-        IplImage tempImage = null, localFramed = cvLoadImage("demoImage2.jpg");
+        IplImage tempImage = null;
         JFrameHand tempFrame = null;
         //localFramed = null;
         while (true) {
@@ -94,26 +108,25 @@ public class JHandControl extends Thread {
                 Thread.sleep(1000 / 50);
             } catch (Exception ex) {
             }
-            if(localFramed == null){
+            if(image == null){
                 try {
                     tempImage = camera.grab();
-                    //tempImage = 
                 } catch (Exception ex) {
                     continue;
                 }
             }
             else{
-                tempImage = IplImage.create(localFramed.width(), localFramed.height(),
-                        IPL_DEPTH_8U, localFramed.nChannels());
-                cvCopy(localFramed, tempImage);
+                tempImage = IplImage.create(image.width(), image.height(),
+                        IPL_DEPTH_8U, image.nChannels());
+                cvCopy(image, tempImage);
             }
             if (tempImage == null && tempImage.isNull()) {
                 continue;
             }
             tempFrame = new JFrameHand(tempImage);
             this.lastFrame = tempFrame;
-            this.hands.clear(); 
             if(!this.calibrator.isManualCalibratorVisible()){
+                this.hands.clear();
                 for(JHandDetection detection: tempFrame.getHands()){
                     if(detection.getStatus() == HandStatus.UNRECOGNIZED){
                         continue;
@@ -121,6 +134,7 @@ public class JHandControl extends Thread {
                     this.hands.add(detection);
                 }
             }
+            
             this.calibrator.updateImage(tempFrame);
             //cvClearMemStorage(this.memStore);
         }
@@ -138,13 +152,5 @@ public class JHandControl extends Thread {
     }
 
 
-    /**
-     * @param args the command line arguments
-     */
-    public static void main(String[] args) {
-        JHandControl.setDefaultCamera(0);
-        JHandControl lib = JHandControl.getInstance();
-        lib.start();
-        lib.getCalibrator().showManualCalibrator(); 
-    }
+    
 }

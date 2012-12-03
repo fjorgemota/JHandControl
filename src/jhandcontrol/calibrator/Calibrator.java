@@ -546,6 +546,8 @@ public class Calibrator extends Thread {
                     g.setColor(oldColor);
                     resizedImage.release();
                     tempImage.release();
+                    resizedImage = null;
+                    tempImage = null;
                 } else {
                     oldColor = g.getColor();
                     g.setColor(Color.ORANGE);
