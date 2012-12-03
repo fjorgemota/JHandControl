@@ -22,6 +22,7 @@ import jhandcontrol.data.JHandDetection;
  * @author Fernando
  */
 public class Demonstration {
+
     /**
      * @param args the command line arguments
      */
@@ -39,24 +40,27 @@ public class Demonstration {
         demoWindow.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         BufferStrategy bf = demoWindow.getBufferStrategy();
         Rectangle rect = new Rectangle();
+        JHandDetection hand = null;
         rect.setBounds(10, 50, 100, 100);
-        while(true){
+        while (true) {
             Graphics g = bf.getDrawGraphics();
             g.clearRect(0, 0, 800, 600);
             List<JHandDetection> hands = lib.getHands();
             g.setColor(Color.BLACK);
             g.drawRect(10, 50, 100, 100);
             g.drawString("Calibrar", 40, 100);
-                for(JHandDetection hand: hands){
-                    if(hand.getStatus() == HandStatus.OPEN){
-                        g.setColor(Color.RED);
-                    }
-                    else{
-                        g.setColor(Color.BLUE);
-                    }
-                    g.fillOval(hand.getX()+(hand.getWidth()/2), hand.getY()+(hand.getHeight()/2), 20, 20);
+            if (!hands.isEmpty()) {
+                hand = hands.get(0);
+            }
+            if(hand != null){
+                if (hand.getStatus() == HandStatus.OPEN) {
+                    g.setColor(Color.RED);
+                } else {
+                    g.setColor(Color.BLUE);
                 }
-            if(mouse.isLeftButtonPressed() && rect.contains(mouse.getMousePos())){
+                g.fillOval(hand.getX() + (hand.getWidth() / 2), hand.getY() + (hand.getHeight() / 2), 20, 20);
+            }
+            if (mouse.isLeftButtonPressed() && rect.contains(mouse.getMousePos())) {
                 lib.getCalibrator().showManualCalibrator();
             }
             bf.show();
