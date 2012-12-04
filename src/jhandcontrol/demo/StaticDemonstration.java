@@ -17,7 +17,7 @@ public class StaticDemonstration {
     public static void main(String[] args) {
         JHandControl.setDefaultCamera(-1);
         JHandControl lib = JHandControl.getInstance();
-        lib.setImage("demoImage3.jpg");
+        lib.setImage("demoImage2.jpg");
         lib.start();
         lib.getCalibrator().showManualCalibrator(); 
     }

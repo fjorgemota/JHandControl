@@ -9,6 +9,7 @@ import com.googlecode.javacv.cpp.opencv_core.CvContour;
 import com.googlecode.javacv.cpp.opencv_core.CvRect;
 import com.googlecode.javacv.cpp.opencv_core.CvSeq;
 import com.googlecode.javacv.cpp.opencv_core.IplImage;
+import static com.googlecode.javacv.cpp.opencv_core.cvCloneSeq;
 import static com.googlecode.javacv.cpp.opencv_imgproc.cvApproxPoly;
 import static com.googlecode.javacv.cpp.opencv_imgproc.cvBoundingRect;
 import static com.googlecode.javacv.cpp.opencv_imgproc.CV_POLY_APPROX_DP;
@@ -26,13 +27,14 @@ import jhandcontrol.utils.CvSeqUtils;
  * @author Fernando
  */
 public class JHandDetection {
-    private CvSeq contour, aprox;
-    private HandStatus status;
-    private CvRect rect;
-    private static CvSeq tempContorno;
+    public CvSeq contour, aprox;
+    public HandStatus status;
+    public CvRect rect;
     private JHandDetection(CvSeq contorno) {
         this.contour = contorno;
         this.status = null;
+        this.aprox = null;
+        this.rect = null;
     }
 
     public CvSeq getContour() {
@@ -40,9 +42,12 @@ public class JHandDetection {
     }
 
     public CvSeq getSimplifiedContour() {
-         this.aprox = cvApproxPoly(this.contour, Loader.sizeof(CvContour.class),
+            //System.out.println("Aproximacao:"+this.contour);
+        if(this.aprox == null){
+            this.aprox = cvApproxPoly(this.contour, Loader.sizeof(CvContour.class),
                                  JHandControl.getInstance().getMemStore(), CV_POLY_APPROX_DP, cvContourPerimeter(this.contour) * 0.01, 0);
-         return this.aprox;
+        }
+        return this.aprox;
     }
 
     public HandStatus getStatus() {
@@ -61,7 +66,10 @@ public class JHandDetection {
     }
 
     public CvRect getRectCountour() {
-        this.rect = cvBoundingRect(this.contour, 0);
+            //System.out.print("Retangulo:"+this.contour);
+        if(this.rect == null){
+            this.rect = cvBoundingRect(this.contour, 0);
+        }
         return this.rect;
     }
 
@@ -84,8 +92,8 @@ public class JHandDetection {
             //System.out.println("Voltando..");
             return result;
         }
-        tempContorno = new CvSeq(null);
-        
+        CvSeq tempContorno = new CvSeq(null);
+        System.out.println(binaryImage);
         cvFindContours(binaryImage, JHandControl.getInstance().getMemStore(),
                 tempContorno, Loader.sizeof(CvContour.class), CV_RETR_EXTERNAL,
                 CV_CHAIN_APPROX_SIMPLE);

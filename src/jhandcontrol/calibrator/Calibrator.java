@@ -4,7 +4,7 @@
  */
 package jhandcontrol.calibrator;
 
-import jhandcontrol.data.JFrameHand;
+import jhandcontrol.data.JFrameHand2;
 import jhandcontrol.data.JHandDetection;
 import jhandcontrol.events.MouseClicker;
 import jhandcontrol.events.TextChanger;
@@ -26,6 +26,7 @@ import javax.swing.JButton;
 import javax.swing.JTextField;
 import jhandcontrol.data.HandStatus;
 import jhandcontrol.calibrator.utils.Mouse;
+import jhandcontrol.data.JFrameHand;
 import jhandcontrol.utils.*;
 
 /**
@@ -385,7 +386,7 @@ public class Calibrator extends Thread {
     }
 
     public void hideManualCalibrator() {
-        this.manualWindow.setVisible(true);
+        this.manualWindow.setVisible(false);
     }
     public boolean isManualCalibratorVisible(){
         return this.manualWindow.isVisible();
@@ -433,6 +434,9 @@ public class Calibrator extends Thread {
             } else if (this.image == null) {
                 //System.out.println("Continuando pois a imagem eh nula:"+this.image+" "+System.currentTimeMillis());
                 continue;
+            }
+            else{
+                this.image.update();
             }
             //System.out.println((this.pause)?"Pausado":"Continuando");
             /*

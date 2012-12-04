@@ -7,6 +7,7 @@ package jhandcontrol;
 import jhandcontrol.data.HandStatus;
 import jhandcontrol.calibrator.Calibrator;
 import com.googlecode.javacpp.Loader;
+import com.googlecode.javacv.FFmpegFrameGrabber;
 import com.googlecode.javacv.FrameGrabber;
 import static com.googlecode.javacv.cpp.opencv_core.*;
 import static com.googlecode.javacv.cpp.opencv_imgproc.*;
@@ -15,8 +16,9 @@ import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import jhandcontrol.utils.CvSeqUtils;
 import jhandcontrol.data.JFrameHand;
+import jhandcontrol.utils.CvSeqUtils;
+import jhandcontrol.data.JFrameHand2;
 import jhandcontrol.data.JHandDetection;
 
 /**
@@ -85,12 +87,13 @@ public class JHandControl extends Thread {
         }
         return false;
     }
-    public void setImage(String image){
-        if(image == null){
+    public void setImage(String newImage){
+        System.out.println(newImage);
+        if(newImage == null){
             this.image = null;
         }
         else{
-            this.image = cvLoadImage(image);
+            this.image = cvLoadImage(newImage);
         }
     }
     public Calibrator getCalibrator() {
@@ -108,6 +111,7 @@ public class JHandControl extends Thread {
                 Thread.sleep(1000 / 50);
             } catch (Exception ex) {
             }
+            System.out.println(image);
             if(image == null){
                 try {
                     tempImage = camera.grab();
@@ -125,7 +129,8 @@ public class JHandControl extends Thread {
             }
             tempFrame = new JFrameHand(tempImage);
             this.lastFrame = tempFrame;
-            if(!this.calibrator.isManualCalibratorVisible()){
+            System.out.println(this.calibrator.isManualCalibratorVisible());
+            if(this.calibrator.isManualCalibratorVisible() == false){
                 this.hands.clear();
                 for(JHandDetection detection: tempFrame.getHands()){
                     if(detection.getStatus() == HandStatus.UNRECOGNIZED){
@@ -134,8 +139,10 @@ public class JHandControl extends Thread {
                     this.hands.add(detection);
                 }
             }
-            
-            this.calibrator.updateImage(tempFrame);
+            else{
+                System.out.println("Atualizando..");
+                this.calibrator.updateImage(tempFrame);
+            }
             //cvClearMemStorage(this.memStore);
         }
     }
