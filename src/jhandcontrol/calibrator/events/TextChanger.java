@@ -2,11 +2,12 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package jhandcontrol.events;
+package jhandcontrol.calibrator.events;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import javax.swing.JOptionPane;
+import javax.swing.JSlider;
 import javax.swing.JTextField;
 import jhandcontrol.calibrator.Calibrator;
 import jhandcontrol.JHandControl;
@@ -133,6 +134,15 @@ public class TextChanger implements ActionListener{
         else if(tooltipText.contains("pontos da mão aberta máxima")){
             if(calibrador.getPointsOpened().getMaximum() >= val && calibrador.getMinPointsOpened() < val){
                 calibrador.setMaxPointsOpened(val);
+            }
+            else{
+                JOptionPane.showMessageDialog(null, "Numero invalido!","Erro", 0);  
+            }
+        }
+        else if(tooltipText.contains("precisão")){
+            JSlider campo = calibrador.getMarginPrecisionSlider();
+            if(campo.getMinimum() <= val && campo.getMaximum() >= val){
+                calibrador.setMarginPrecision(val);
             }
             else{
                 JOptionPane.showMessageDialog(null, "Numero invalido!","Erro", 0);  

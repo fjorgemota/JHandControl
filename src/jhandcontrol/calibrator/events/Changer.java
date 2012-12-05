@@ -2,7 +2,7 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package jhandcontrol.events;
+package jhandcontrol.calibrator.events;
 
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
