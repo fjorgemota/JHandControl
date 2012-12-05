@@ -6,9 +6,9 @@ package jhandcontrol.calibrator;
 
 import jhandcontrol.data.JFrameHand2;
 import jhandcontrol.data.JHandDetection;
-import jhandcontrol.events.MouseClicker;
-import jhandcontrol.events.TextChanger;
-import jhandcontrol.events.Changer;
+import jhandcontrol.calibrator.events.MouseClicker;
+import jhandcontrol.calibrator.events.TextChanger;
+import jhandcontrol.calibrator.events.Changer;
 import com.googlecode.javacpp.Loader;
 import com.googlecode.javacv.cpp.opencv_core.*;
 import static com.googlecode.javacv.cpp.opencv_core.*;
@@ -23,10 +23,13 @@ import static com.googlecode.javacv.cpp.opencv_imgproc.*;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import javax.swing.JButton;
+import javax.swing.JSlider;
 import javax.swing.JTextField;
 import jhandcontrol.data.HandStatus;
 import jhandcontrol.calibrator.utils.Mouse;
+import jhandcontrol.data.HandLine;
 import jhandcontrol.data.JFrameHand;
+import jhandcontrol.calibrator.events.PrecisionChanger;
 import jhandcontrol.utils.*;
 
 /**
@@ -37,18 +40,19 @@ public class Calibrator extends Thread {
 
     private int minY, minCr, minCb, minPointsClosed, minAreaClosed,
             minPointsOpened, minAreaOpened, maxY, maxCr, maxCb, maxPointsClosed,
-            maxAreaClosed, maxPointsOpened, maxAreaOpened, autoMode;
+            maxAreaClosed, maxPointsOpened, maxAreaOpened, marginPrecisionVal, autoMode;
     private JFrame manualWindow;
     private RangeSlider YChannel, CrChannel, CbChannel, pointsClosed,
             areaClosed, pointsOpened, areaOpened;
+    private JSlider marginPrecision;
     private JLabel YChannelLabel, CrChannelLabel, CbChannelLabel,
             pointsClosedLabel, areaClosedLabel, pointsOpenedLabel,
-            areaOpenedLabel;
+            areaOpenedLabel, marginPrecisionLabel;
     private JTextField minYChannelInput, maxYChannelInput, minCrChannelInput,
             maxCrChannelInput, minCbChannelInput, maxCbChannelInput,
             minPointsClosedInput, maxPointsClosedInput, minPointsOpenedInput,
             maxPointsOpenedInput, minAreaClosedInput, maxAreaClosedInput,
-            minAreaOpenedInput, maxAreaOpenedInput;
+            minAreaOpenedInput, maxAreaOpenedInput, marginPrecisionInput;
     private JButton imageModeButton, handModeButton, pauseButton, contourButton;
     private Canvas demoImage;
     private JFrameHand image;
@@ -71,6 +75,7 @@ public class Calibrator extends Thread {
         this.modeContour = 0;
         this.autoMode = 1;
         this.mouseListener = new Mouse();
+        this.marginPrecisionVal = 20;
         this.minY = 0;
         this.minCr = 0;
         this.minCb = 0;
@@ -78,11 +83,11 @@ public class Calibrator extends Thread {
         this.maxCr = 0;
         this.maxCb = 0;
         this.minAreaOpened = 100000;
-        this.maxAreaOpened = 250000;
+        this.maxAreaOpened = 640*480;
         this.minPointsOpened = 6;
         this.maxPointsOpened = 15;
         this.minAreaClosed = 10000;
-        this.maxAreaClosed = 250000;
+        this.maxAreaClosed = 640*480;
         this.minPointsClosed = 8;
         this.maxPointsClosed = 11;
         //cvInRangeS(newImage, cvScalar(50, 120, 104, 0), cvScalar(160, 170, 140, 0), binaryImage);
@@ -302,23 +307,45 @@ public class Calibrator extends Thread {
         this.maxPointsOpenedInput.addActionListener(new TextChanger());
         this.manualWindow.add(this.maxPointsOpenedInput);
 
+        this.marginPrecisionLabel = new JLabel("Precisão da varredura:");
+        this.marginPrecisionLabel.setBounds(marginLeft, 560, 150, 20);
+        this.manualWindow.add(this.marginPrecisionLabel);
+        
+        this.marginPrecisionInput = new JTextField();
+        this.marginPrecisionInput.setBounds(15, 590, 50, 20);
+        this.marginPrecisionInput.setText(this.marginPrecisionVal+ "");
+        this.marginPrecisionInput.setToolTipText("Informe a precisão com que a varredura deve ser executada");
+        this.marginPrecisionInput.addActionListener(new TextChanger());
+        this.manualWindow.add(this.marginPrecisionInput);
+        
+        this.marginPrecision = new JSlider();
+        this.marginPrecision.setToolTipText("Informe a precisão com que a varredura deve ser executada");
+        this.marginPrecision.setBounds(marginLeft, 590, baseWidth, 20);
+        this.marginPrecision.setValue(this.marginPrecisionVal);
+        this.marginPrecision.setMinimum(0);
+        this.marginPrecision.setMaximum(640);
+        this.marginPrecision.addChangeListener(new PrecisionChanger());
+        this.marginPrecision.setPaintTicks(true);
+        this.marginPrecision.setVisible(true);
+        this.manualWindow.add(this.marginPrecision);
+        
         this.handModeButton = new JButton("Todas as detecções");
-        this.handModeButton.setBounds(marginLeft, 575, baseWidth / 2, 20);
+        this.handModeButton.setBounds(marginLeft, 620, baseWidth / 2, 20);
         this.handModeButton.addMouseListener(new MouseClicker());
         this.manualWindow.add(this.handModeButton);
 
         this.imageModeButton = new JButton("Imagem Colorida");
-        this.imageModeButton.setBounds(marginLeft + (baseWidth / 2), 575, baseWidth / 2, 20);
+        this.imageModeButton.setBounds(marginLeft + (baseWidth / 2), 620, baseWidth / 2, 20);
         this.imageModeButton.addMouseListener(new MouseClicker());
         this.manualWindow.add(this.imageModeButton);
 
         this.pauseButton = new JButton("Pausar imagem");
-        this.pauseButton.setBounds(marginLeft, 600, baseWidth / 2, 20);
+        this.pauseButton.setBounds(marginLeft, 640, baseWidth / 2, 20);
         this.pauseButton.addMouseListener(new MouseClicker());
         this.manualWindow.add(this.pauseButton);
 
         this.contourButton = new JButton("Contorno Preciso");
-        this.contourButton.setBounds(marginLeft + (baseWidth / 2), 600, baseWidth / 2, 20);
+        this.contourButton.setBounds(marginLeft + (baseWidth / 2), 640, baseWidth / 2, 20);
         this.contourButton.addMouseListener(new MouseClicker());
         this.manualWindow.add(this.contourButton);
 
@@ -363,6 +390,55 @@ public class Calibrator extends Thread {
         return modeContour;
     }
 
+    private void resetColors() {
+        this.setMinY(0);
+        this.setMinCr(0);
+        this.setMinCb(0);
+        this.setMaxY(0);
+        this.setMaxCr(0);
+        this.setMaxCb(0);
+    }
+
+    private void updateColors(IplImage resizedYCrCbImage) {
+        CvScalar pixel;
+        int YColor, CrColor, CbColor;
+        for (Point ponto : this.pontosAutoCalibrador) {
+            pixel = cvGet2D(resizedYCrCbImage, (int) ponto.getY(),
+                    (int) ponto.getX());
+            YColor = (int) pixel.getVal(0);
+            CrColor = (int) pixel.getVal(1);
+            CbColor = (int) pixel.getVal(2);
+            if (this.maxY < YColor) {
+                this.setMaxY(YColor);
+            }
+            if (this.maxCr < CrColor) {
+                this.setMaxCr(CrColor);
+            }
+            if (this.maxCb < CbColor) {
+                this.setMaxCb(CbColor);
+            }
+        }
+        this.setMinY(this.getMaxY());
+        this.setMinCr(this.getMaxCr());
+        this.setMinCb(this.getMaxCb());
+        for (Point ponto : this.pontosAutoCalibrador) {
+            pixel = cvGet2D(resizedYCrCbImage, (int) ponto.getY(),
+                    (int) ponto.getX());
+            YColor = (int) pixel.getVal(0);
+            CrColor = (int) pixel.getVal(1);
+            CbColor = (int) pixel.getVal(2);
+            if (this.minY > YColor) {
+                this.setMinY(YColor);
+            }
+            if (this.minCr > CrColor) {
+                this.setMinCr(CrColor);
+            }
+            if (this.minCb > CbColor) {
+                this.setMinCb(CbColor);
+            }
+        }
+    }
+
     public JFrameHand getLastImage() {
         return this.image;
     }
@@ -388,9 +464,11 @@ public class Calibrator extends Thread {
     public void hideManualCalibrator() {
         this.manualWindow.setVisible(false);
     }
-    public boolean isManualCalibratorVisible(){
+
+    public boolean isManualCalibratorVisible() {
         return this.manualWindow.isVisible();
     }
+
     public void updateImage(JFrameHand image) {
         if (this.bufferImages.size() > 2 || !this.isManualCalibratorVisible()) {
             return;
@@ -414,7 +492,8 @@ public class Calibrator extends Thread {
 
     public void run() {
         Graphics g = null;
-        int delayRightClick = 0;
+        int delayRightClick = 0, delayLeftClick = 0;
+        CvFont textFont = new CvFont(CV_FONT_HERSHEY_SCRIPT_SIMPLEX, 0.4, 1); 
         while (true) {
             try {
                 Thread.sleep(1000 / 50);
@@ -434,8 +513,7 @@ public class Calibrator extends Thread {
             } else if (this.image == null) {
                 //System.out.println("Continuando pois a imagem eh nula:"+this.image+" "+System.currentTimeMillis());
                 continue;
-            }
-            else{
+            } else {
                 this.image.update();
             }
             //System.out.println((this.pause)?"Pausado":"Continuando");
@@ -444,10 +522,9 @@ public class Calibrator extends Thread {
              */
             IplImage yCrCbImage = this.image.getYCrCbImage();
             if (this.bfImage != null) {
-                try{
+                try {
                     g = this.bfImage.getDrawGraphics();
-                }
-                catch(Exception ex){
+                } catch (Exception ex) {
                     continue;
                 }
                 Color oldColor;
@@ -518,27 +595,27 @@ public class Calibrator extends Thread {
                             } else {
                                 CvRect contorno = hand.getRectCountour();
                                 int rectX = contorno.x(), rectY = contorno.y();
-                                int rectW = contorno.width()+rectX, rectH = contorno.height()+rectY;
-                                
-                                if(this.modeContour == 2){
-                                        cvDrawRect(tempImage, new CvPoint(rectX, rectY),
+                                int rectW = contorno.width() + rectX, rectH = contorno.height() + rectY;
+
+                                if (this.modeContour == 2) {
+                                    cvDrawRect(tempImage, new CvPoint(rectX, rectY),
                                             new CvPoint(rectW, rectH),
                                             color, fill, CV_AA, 0);
-                                }
-                                else{
+                                } else {
                                     cvDrawContours(tempImage, hand.getSimplifiedContour(), color, color, -1, fill, 8);
-                                    if(contorno.width() < contorno.height()){
-                                        while(rectY < rectH){
-                                            cvDrawLine(tempImage, new CvPoint(rectX, rectY), new CvPoint(rectW, rectY), color, 1, CV_AA, 0);
-                                            rectY += CvSeqUtils.getMarginPrecision();
+                                    for(HandLine line: hand.getIntersectionLines()) {
+                                        if( line.getIntersectCount() > 4){
+                                             color = CV_RGB(255, 0, 0);
                                         }
-                                    }
-                                    else{
-                                        while(rectX < rectW){
-                                            cvDrawLine(tempImage, new CvPoint(rectX, rectY), new CvPoint(rectX, rectH), color, 1, CV_AA, 0);
-                                            rectX += CvSeqUtils.getMarginPrecision();
+                                        else if(line.getIntersectCount() == 2){
+                                            color = CV_RGB(0, 255, 0);
                                         }
-                                    }
+                                        else{
+                                            color = CV_RGB(0, 0, 255);
+                                        }
+                                        cvDrawLine(tempImage, line.getFirstPoint(), line.getSecondPoint(), color, 1, CV_AA, 0);
+                                        cvPutText(tempImage, line.getIntersectCount()+"", new CvPoint(line.getSecondPoint().x()+(line.isHorizontal()?20:0), line.getSecondPoint().y()+(line.isHorizontal()?0:20)), textFont, color);
+                                    } 
                                 }
                             }
                         }
@@ -549,8 +626,8 @@ public class Calibrator extends Thread {
                     g.drawImage(resizedImage.getBufferedImage(), 650, 40, this.manualWindow);
                     oldColor = g.getColor();
                     g.setColor(Color.RED);
-                    for(Point ponto: this.pontosAutoCalibrador){
-                        g.fillOval((int)ponto.getX()+650,(int)ponto.getY()+40, 5, 5);   
+                    for (Point ponto : this.pontosAutoCalibrador) {
+                        g.fillOval((int) ponto.getX() + 650, (int) ponto.getY() + 40, 5, 5);
                     }
                     g.setColor(oldColor);
                     resizedImage.release();
@@ -600,70 +677,40 @@ public class Calibrator extends Thread {
                         + " Canal Cr:" + CrColor
                         + " Canal Cb:" + CbColor, 700, 550);
                 g.setColor(oldColor);
-                if(this.pause){
-                    if (this.mouseListener.isLeftButtonPressed() && mouseValid) {
-                        if (this.minY > YColor) {
-                            this.setMinY(YColor);
-                        }
-                        if (this.minCr > CrColor) {
-                            this.setMinCr(CrColor);
-                        }
-                        if (this.minCb > CbColor) {
-                            this.setMinCb(CbColor);
-                        }
-                        if (this.maxY < YColor) {
-                            this.setMaxY(YColor);
-                        }
-                        if (this.maxCr < CrColor) {
-                            this.setMaxCr(CrColor);
-                        }
-                        if (this.maxCb < CbColor) {
-                            this.setMaxCb(CbColor);
-                        }
-                        if (this.autoMode == 1) {
-                            this.pontosAutoCalibrador.add(new Point(mouseX, mouseY));
-                        }
-                    }
-                    if (this.mouseListener.isRightButtonPressed() && delayRightClick > 20
-                            && mouseValid) {
-                        if (this.autoMode == 0) {
-                            this.setMinY(0);
-                            this.setMinCr(0);
-                            this.setMinCb(0);
-                            this.setMaxY(0);
-                            this.setMaxCr(0);
-                            this.setMaxCb(0);
-                            this.pontosAutoCalibrador.clear();
-                            this.autoMode = 1;
-                        } else if(this.autoMode == 1){
-                            this.setMinY(this.getMaxY());
-                            this.setMinCr(this.getMaxCr());
-                            this.setMinCb(this.getMaxCb());
-                            for (Point ponto : this.pontosAutoCalibrador) {
-                                pixel = cvGet2D(resizedYCrCbImage, (int)ponto.getY(),
-                                        (int)ponto.getX());
-                                YColor = (int) pixel.getVal(0);
-                                CrColor = (int) pixel.getVal(1);
-                                CbColor = (int) pixel.getVal(2);
-                                if (this.minY > YColor) {
-                                    this.setMinY(YColor);
-                                }
-                                if (this.minCr > CrColor) {
-                                    this.setMinCr(CrColor);
-                                }
-                                if (this.minCb > CbColor) {
-                                    this.setMinCb(CbColor);
-                                }
-                            }
-                            this.autoMode = 2;
+                if (this.pause) {
+                    Point mouseLocation = new Point(mouseX, mouseY);
+                    if (this.mouseListener.isLeftButtonPressed() && mouseValid && this.autoMode == 1) {
+                        this.pontosAutoCalibrador.add(mouseLocation);
+                    } else if(this.mouseListener.isLeftButtonPressed() && mouseValid && this.autoMode == 2 && delayLeftClick > 20){
+                        this.resetColors();
+                        if(this.pontosAutoCalibrador.contains(mouseLocation)){
+                            this.pontosAutoCalibrador.remove(mouseLocation);
                         }
                         else{
+                            this.pontosAutoCalibrador.add(mouseLocation);
+                        }
+                        this.updateColors(resizedYCrCbImage);
+                        delayLeftClick = 0;
+                    }else if (this.mouseListener.isRightButtonPressed() && delayRightClick > 20
+                            && mouseValid) {
+                        if (this.autoMode == 0) {
+                            this.resetColors();
+                            this.pontosAutoCalibrador.clear();
+                            this.autoMode = 1;
+                        } else if (this.autoMode == 1) {
+                            this.updateColors(resizedYCrCbImage);
+                            this.autoMode = 2;
+                        } else {
                             this.pontosAutoCalibrador.clear();
                             this.autoMode = 0;
                         }
                         delayRightClick = 0;
                     }
+                    
+                } else if (!this.pontosAutoCalibrador.isEmpty()) {
+                    this.pontosAutoCalibrador.clear();
                 }
+                ++delayLeftClick;
                 ++delayRightClick;
                 g.setColor(oldColor);
                 this.bfImage.show();
@@ -713,10 +760,10 @@ public class Calibrator extends Thread {
                     this.CbChannel.setMaximum((int) theMaxCb);
                 }
                 int area = (this.image.getImageHeight() * this.image.getImageHeight()) / baseWidth;
-                if (this.areaClosed.getMaximum() > area) {
+                if (this.areaClosed.getMaximum() != area) {
                     this.areaClosed.setMaximum(area);
                 }
-                if (this.areaOpened.getMaximum() > area) {
+                if (this.areaOpened.getMaximum() != area) {
                     this.areaOpened.setMaximum(area);
                 }
                 if (this.autocalibrator == true) {
@@ -731,7 +778,21 @@ public class Calibrator extends Thread {
             }
         }
     }
-
+    public JSlider getMarginPrecisionSlider(){
+        return this.marginPrecision;
+    }
+    public int getMarginPrecision() {
+        return marginPrecisionVal;
+    }
+    public void setMarginPrecision(int marginPrecisionNewVal) {
+        marginPrecisionVal = marginPrecisionNewVal;
+        if (!this.marginPrecisionInput.getText().equals(marginPrecisionNewVal + "")) {
+            this.marginPrecisionInput.setText(marginPrecisionNewVal + "");
+        }
+        if (this.marginPrecision.getValue() != marginPrecisionNewVal) {
+            this.marginPrecision.setValue(marginPrecisionNewVal);
+        }
+    }
     public RangeSlider getYChannel() {
         return YChannel;
     }

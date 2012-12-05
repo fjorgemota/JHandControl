@@ -16,8 +16,8 @@ import jhandcontrol.JHandControl;
  * @author Fernando
  */
 public class JFrameHand implements Cloneable{
-    private IplImage coloredImage, binaryImage, yCrCbImage;
-    private ArrayList<JHandDetection> hands;
+    public IplImage coloredImage, binaryImage, yCrCbImage;
+    public ArrayList<JHandDetection> hands;
     public JFrameHand(IplImage theImage) {
         /*
          * Imagem Colorida
