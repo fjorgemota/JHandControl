@@ -7,27 +7,20 @@ package jhandcontrol;
 import jhandcontrol.data.HandStatus;
 import jhandcontrol.calibrator.Calibrator;
 import com.googlecode.javacpp.Loader;
-import com.googlecode.javacv.FFmpegFrameGrabber;
 import com.googlecode.javacv.FrameGrabber;
 import static com.googlecode.javacv.cpp.opencv_core.*;
-import static com.googlecode.javacv.cpp.opencv_imgproc.*;
 import static com.googlecode.javacv.cpp.opencv_highgui.*;
-import java.awt.image.BufferedImage;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import jhandcontrol.data.JFrameHand;
-import jhandcontrol.utils.CvSeqUtils;
-import jhandcontrol.data.JFrameHand2;
-import jhandcontrol.data.JHandDetection;
+import jhandcontrol.events.FrameListener;
 
 /**
  *
  * @author fernando
  */
 public class JHandControl extends Thread {
+    private ArrayList<FrameListener> callbacks;
 
-    private ArrayList<JHandDetection> hands, bufferHands;
     private Calibrator calibrator;
     private JFrameHand lastFrame;
     private FrameGrabber camera;
@@ -35,15 +28,14 @@ public class JHandControl extends Thread {
     private static JHandControl instance;
     private static int DEFAULT_CAMERA = -1;
     private IplImage image;
-    
     public JHandControl(int autoconnect) {
         //this.lastImage = cvLoadImage("imagens/mao.jpg");
-        this.hands = new ArrayList<JHandDetection>();
-        this.bufferHands = new ArrayList<JHandDetection>();
+        this.callbacks = new ArrayList<FrameListener>();
         this.memStore = CvMemStorage.create(0);
         this.image = null;
         this.calibrator = new Calibrator();
         this.calibrator.start();
+        System.out.println(CV_VERSION);
         /*
          * Define a váriavel dos contornos
          */
@@ -70,10 +62,6 @@ public class JHandControl extends Thread {
             return camera != null;
         }
         return true;
-    }
-
-    public ArrayList<JHandDetection> getHands() {
-        return (ArrayList<JHandDetection>) hands.clone();
     }
     public boolean close() {
         if (this.camera != null) {
@@ -102,6 +90,13 @@ public class JHandControl extends Thread {
     public CvMemStorage getMemStore(){
         return this.memStore;
     }
+    public void addFrameListener(FrameListener listener){
+        this.callbacks.add(listener);
+    }
+    
+    public void removeFrameListener(FrameListener listener){
+        this.callbacks.remove(listener);
+    }
     public void run() {
         IplImage tempImage = null;
         JFrameHand tempFrame = null;
@@ -111,7 +106,6 @@ public class JHandControl extends Thread {
                 Thread.sleep(1000 / 50);
             } catch (Exception ex) {
             }
-            System.out.println(image);
             if(image == null){
                 try {
                     tempImage = camera.grab();
@@ -129,19 +123,13 @@ public class JHandControl extends Thread {
             }
             tempFrame = new JFrameHand(tempImage);
             this.lastFrame = tempFrame;
-            System.out.println(this.calibrator.isManualCalibratorVisible());
-            if(this.calibrator.isManualCalibratorVisible() == false){
-                this.hands.clear();
-                for(JHandDetection detection: tempFrame.getHands()){
-                    if(detection.getStatus() == HandStatus.UNRECOGNIZED){
-                        continue;
-                    }
-                    this.hands.add(detection);
-                }
+            if(this.calibrator.isManualCalibratorVisible()){
+                this.calibrator.updateImage(tempFrame);
             }
             else{
-                System.out.println("Atualizando..");
-                this.calibrator.updateImage(tempFrame);
+                for(FrameListener callback: this.callbacks){
+                    callback.frameEvent(tempFrame);
+                }
             }
             //cvClearMemStorage(this.memStore);
         }
