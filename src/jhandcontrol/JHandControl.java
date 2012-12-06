@@ -11,9 +11,6 @@ import com.googlecode.javacv.FrameGrabber;
 import static com.googlecode.javacv.cpp.opencv_core.*;
 import static com.googlecode.javacv.cpp.opencv_highgui.*;
 import java.util.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import javax.sound.midi.SysexMessage;
 import jhandcontrol.data.JFrameHand;
 import jhandcontrol.events.FrameListener;
 
@@ -26,7 +23,7 @@ public class JHandControl extends Thread {
     private Calibrator calibrator;
     public JFrameHand lastFrame = null, tempFrame = null;
     private FrameGrabber camera;
-    private CvMemStorage memStore = null;
+    public CvMemStorage memStore = null;
     private static JHandControl instance;
     private static int DEFAULT_CAMERA = -1;
     public IplImage image = null, tempImage = null;
@@ -36,7 +33,7 @@ public class JHandControl extends Thread {
         this.tempCallbacks = new ArrayList<FrameListener>();
         this.memStore = CvMemStorage.create(0);
         this.image = null;
-        this.calibrator = new Calibrator();
+        this.calibrator = new Calibrator(this);
         this.calibrator.start();
         /*
          * Define a váriavel dos contornos
@@ -93,6 +90,10 @@ public class JHandControl extends Thread {
     public CvMemStorage getMemStore(){
         return this.memStore;
     }
+    public CvMemStorage createMemStore(){
+        this.memStore = CvMemStorage.create(); 
+       return this.memStore;
+    }
     public void addFrameListener(FrameListener listener){
         this.tempCallbacks.add(listener);
     }
@@ -103,9 +104,10 @@ public class JHandControl extends Thread {
     public boolean isLive(){
         return this.image == null;
     }
-    public void run() {
+    public synchronized void run() {
         //localFramed = null;
         while (true) {
+            System.gc();
             try {
                 Thread.sleep(1000 / 50);
             } catch (Exception ex) {
@@ -136,7 +138,7 @@ public class JHandControl extends Thread {
                 //tempFrame = tempFrame;
                 callback.frameEvent(tempFrame);
             }
-            tempFrame.close();
+            //tempFrame.close();
             //tempFrame.update();
             this.callbacks = this.tempCallbacks;
         }
