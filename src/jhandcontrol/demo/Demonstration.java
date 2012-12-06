@@ -29,6 +29,9 @@ class HandListener implements FrameListener {
 
     @Override
     public void frameEvent(JFrameHand frame) {
+        if(JHandControl.getInstance().getCalibrator().isManualCalibratorVisible()){
+            return;
+        }
         ArrayList<JHandDetection> hands = frame.getHands();
         if(hands.isEmpty()){
             return;
