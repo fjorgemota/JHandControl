@@ -15,6 +15,10 @@ import jhandcontrol.calibrator.utils.RangeSlider;
  * @author fernando
  */
 public class Changer implements ChangeListener{
+    private Calibrator calibrador;
+    public Changer(Calibrator instance){
+        this.calibrador = instance;
+    }
     public void stateChanged(ChangeEvent e){
         RangeSlider slider = (RangeSlider) e.getSource();
         if(slider == null || slider.getToolTipText() == null){
@@ -23,7 +27,6 @@ public class Changer implements ChangeListener{
         String tooltipText = slider.getToolTipText();
         int minValue = slider.getValue();
         int maxValue = slider.getUpperValue(); 
-        Calibrator calibrador = JHandControl.getInstance().getCalibrator();
         if(tooltipText.contains("iluminacao")){
             calibrador.setMinY(minValue);
             calibrador.setMaxY(maxValue);

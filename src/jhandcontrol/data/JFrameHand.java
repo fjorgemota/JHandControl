@@ -10,30 +10,36 @@ import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jhandcontrol.JHandControl;
+import jhandcontrol.calibrator.Calibrator;
 
 /**
  *
  * @author Fernando
  */
 public class JFrameHand implements Cloneable{
-    public IplImage coloredImage, binaryImage, yCrCbImage;
-    public ArrayList<JHandDetection> hands;
-    public JFrameHand(IplImage theImage) {
+    private IplImage coloredImage = null, binaryImage = null, yCrCbImage = null;
+    private ArrayList<JHandDetection> hands = null;
+    private JHandControl parent;
+    public JFrameHand(IplImage theImage, JHandControl instance) {
         /*
          * Imagem Colorida
          */
-        this.coloredImage = IplImage.create(theImage.width(), 
-                theImage.height(), 
-                theImage.depth(), 
-                theImage.nChannels());
-        cvCopy(theImage, this.coloredImage);
-        //this.coloredImage = theImage;
+        //this.coloredImage = IplImage.createFrom(theImage.getBufferedImage());
+        this.coloredImage = theImage;
+        this.parent = instance;
         this.update();
+    }
+    @Override
+    public JFrameHand clone(){
+        IplImage oldImage= this.getColoredImage();
+        IplImage newImage = IplImage.create(oldImage.width(), oldImage.height(),
+                oldImage.depth(), oldImage.nChannels());
+        cvCopy(oldImage, newImage);
+        return new JFrameHand(newImage, this.parent);
         
     }
-
     public IplImage getBinaryImage() {
-        if(this.binaryImage == null){
+        //if(this.binaryImage == null){
             /*
              * Cria a imagem binária
              */
@@ -49,11 +55,10 @@ public class JFrameHand implements Cloneable{
                      binaryImage);
             //yCrCbImage.release();
             //yCrCbImage = null;
-        }
+        //}
         return binaryImage;
         
     }
-
     public IplImage getColoredImage() {
         /* 
          * Retorna a imagem colorida
@@ -63,14 +68,16 @@ public class JFrameHand implements Cloneable{
 
     public ArrayList<JHandDetection> getHands() {
 
-        if(hands == null){
+        //if(hands == null){
             binaryImage = this.getBinaryImage();
             hands = JHandDetection.detect(binaryImage);
             //binaryImage.release(); // Don't comment if you don't want to see a 
             //binaryImage = null; // ACCESS_VIOLATION error in OpenCV 2.4.3 in Windows
-        }
+        //}
         return hands;
     }
+
+ 
     
     public int getImageHeight() {
         /*
@@ -87,23 +94,17 @@ public class JFrameHand implements Cloneable{
     }
 
     public IplImage getYCrCbImage() {
-        if(this.yCrCbImage == null){
+        //if(this.yCrCbImage == null){
             /* 
              * Cria a imagem na escala de cores YCrCb
              */
             yCrCbImage = IplImage.create(this.getImageWidth(), this.getImageHeight(), IPL_DEPTH_8U, 3);
             cvCvtColor(this.coloredImage, yCrCbImage, CV_BGR2YCrCb);
             //cvCopy(this.coloredImage, yCrCbImage);
-        }
+        //}
         return yCrCbImage;
     }
     public void update(){
-        this.hands = null;
-        this.binaryImage = null;
-        this.yCrCbImage = null;
-    }
-    @Override
-    public void finalize(){
         if(this.hands != null){
             this.hands.clear();
             this.hands = null;
@@ -116,9 +117,19 @@ public class JFrameHand implements Cloneable{
             this.yCrCbImage.release();
             this.yCrCbImage = null;
         }
-        if(this.coloredImage != null){
+    }
+    public void close(){
+        this.update();
+        if(!this.parent.isLive() && this.coloredImage != null){
+            System.out.println("Fechando definitivamente");
             this.coloredImage.release();
             this.coloredImage = null;
         }
     }
+    @Override
+    public void finalize() throws Throwable{
+        super.finalize();
+        this.close();
+    }
+    // Dizem que é lento, então..tá
 }

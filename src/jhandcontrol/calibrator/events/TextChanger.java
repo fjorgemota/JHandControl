@@ -17,7 +17,10 @@ import jhandcontrol.JHandControl;
  * @author Fernando
  */
 public class TextChanger implements ActionListener{
-
+    private Calibrator calibrador;
+    public TextChanger(Calibrator instance){
+        this.calibrador = instance;
+    }
     public void actionPerformed(ActionEvent e) {
         JTextField textField = (JTextField) e.getSource();
         if(textField == null || textField.getToolTipText() == null){
@@ -25,7 +28,6 @@ public class TextChanger implements ActionListener{
         }
         int val = Integer.parseInt(textField.getText());
         String tooltipText = textField.getToolTipText();
-        Calibrator calibrador = JHandControl.getInstance().getCalibrator();
         if(tooltipText.contains("iluminacao minima")){
             if(calibrador.getYChannel().getMinimum() <= val && calibrador.getMaxY() > val){
                 calibrador.setMinY(val);

@@ -13,6 +13,7 @@ import com.googlecode.javacv.cpp.opencv_core.CvRect;
 import com.googlecode.javacv.cpp.opencv_core.CvSeq;
 import com.googlecode.javacv.cpp.opencv_core.IplImage;
 import static com.googlecode.javacv.cpp.opencv_core.cvCloneSeq;
+import static com.googlecode.javacv.cpp.opencv_core.cvCopy;
 import static com.googlecode.javacv.cpp.opencv_imgproc.cvApproxPoly;
 import static com.googlecode.javacv.cpp.opencv_imgproc.cvBoundingRect;
 import static com.googlecode.javacv.cpp.opencv_imgproc.CV_POLY_APPROX_DP;
@@ -32,17 +33,13 @@ import jhandcontrol.utils.Line;
  * @author Fernando
  */
 public class JHandDetection {
-    public CvSeq contour, aprox;
-    public HandStatus status;
-    public CvRect rect;
-    public ArrayList<HandLine> lines; 
+    public CvSeq contour = null, aprox = null;
+    public HandStatus status = null;
+    public CvRect rect = null;
+    public ArrayList<HandLine> lines = null; 
 
     private JHandDetection(CvSeq contorno) {
         this.contour = contorno;
-        this.status = null;
-        this.aprox = null;
-        this.rect = null;
-        this.lines = null;
     }
 
     public CvSeq getContour() {
@@ -51,10 +48,11 @@ public class JHandDetection {
 
     public CvSeq getSimplifiedContour() {
             //System.out.println("Aproximacao:"+this.contour);
-        if(this.aprox == null){
+        //if(this.aprox == null){
+            CvMemStorage memStore = JHandControl.getInstance().getMemStore();
             this.aprox = cvApproxPoly(this.contour, Loader.sizeof(CvContour.class),
-                                 JHandControl.getInstance().getMemStore(), CV_POLY_APPROX_DP, cvContourPerimeter(this.contour) * 0.01, 0);
-        }
+                                 memStore, CV_POLY_APPROX_DP, cvContourPerimeter(this.contour) * 0.01, 0);
+        //}
         return this.aprox;
     }
     private ArrayList<Line> toLines(CvSeq contorno){
@@ -377,12 +375,16 @@ public class JHandDetection {
     
     public static ArrayList<JHandDetection> detect(IplImage binaryImage){
         ArrayList<JHandDetection> result = new ArrayList<JHandDetection>();
-        if(binaryImage == null || binaryImage.nChannels()!=1 || binaryImage.sizeof()<1){
-            //System.out.println("Voltando..");
+        if(binaryImage == null || binaryImage.isNull() || binaryImage.nChannels()!=1 || binaryImage.sizeof()<1){
+            System.out.println("Voltando..");
             return result;
         }
         CvSeq tempContorno = new CvSeq(null);
-        CvMemStorage memStore = JHandControl.getInstance().getMemStore();
+        CvMemStorage memStore = CvMemStorage.create(0);
+        //IplImage theImage = IplImage.createFrom(binaryImage.getBufferedImage());
+        /*IplImage theImage = IplImage.create(binaryImage.width(), binaryImage.height(),
+                binaryImage.depth(), binaryImage.nChannels());
+        cvCopy(binaryImage, theImage);*/     
         cvFindContours(binaryImage, memStore,
                 tempContorno, Loader.sizeof(CvContour.class), CV_RETR_EXTERNAL,
                 CV_CHAIN_APPROX_SIMPLE);
@@ -390,11 +392,29 @@ public class JHandDetection {
             if(tempContorno == null || tempContorno.isNull() || tempContorno.total() < 2){
                 continue;
             }
+           
             JHandDetection detection = new JHandDetection(tempContorno);
             result.add(detection);
         }
-        
         return result;
     }
-    
+    @Override
+    public void finalize(){
+        if(this.contour != null){
+            this.contour = null;
+        }
+        if(this.aprox != null){
+            this.aprox = null;
+        }
+        if(this.rect != null){
+            this.rect = null;
+        }
+        if(this.status != null){
+            this.status = null;
+        }
+        if(this.lines != null){
+            this.lines.clear();
+            this.lines = null;
+        }
+    }
 }

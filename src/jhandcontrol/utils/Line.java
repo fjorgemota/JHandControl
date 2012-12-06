@@ -187,4 +187,8 @@ public class Line {
         }
         return false;
     }
+    @Override
+    public void finalize(){
+        this.cache = null;
+    }
 }

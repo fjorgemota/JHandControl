@@ -16,13 +16,16 @@ import jhandcontrol.calibrator.utils.RangeSlider;
  * @author fernando
  */
 public class PrecisionChanger implements ChangeListener{
+    private Calibrator calibrador;
+    public PrecisionChanger(Calibrator instance){
+        this.calibrador = instance;
+    }
     public void stateChanged(ChangeEvent e){
         JSlider slider = (JSlider)e.getSource();
         if(slider == null || slider.getToolTipText() == null){
             return;
         }
         int val = slider.getValue();
-        Calibrator calibrador = JHandControl.getInstance().getCalibrator();
         calibrador.setMarginPrecision(val);
     }
 }
