@@ -45,8 +45,12 @@ class FrameQueue implements FrameListener {
         this.parent = calibrador;
     }
 
+    @Override
     public void frameEvent(JFrameHand frame) {
         if (!this.parent.isManualCalibratorVisible()) {
+            if (frame != null) {
+                frame.close();
+            }
             return;
         }
         this.parent.updateImage(frame, false);
@@ -90,8 +94,10 @@ public class Calibrator extends Thread {
     private PrecisionChanger precisionChanger;
     private WindowChanger windowChanger;
     private CvFont textFont;
-
-    public Calibrator() {
+    private JHandControl parent;
+    private CvSeq contorno = null;
+    public Calibrator(JHandControl instance) {
+        this.parent = instance;
         this.bufferImages = new FrameQueue(this);
         this.pontosAutoCalibrador = new ArrayList<Point>();
         this.autocalibrator = false;
@@ -123,7 +129,7 @@ public class Calibrator extends Thread {
         this.inputChanger = new TextChanger(this);
         this.precisionChanger = new PrecisionChanger(this);
         this.windowChanger = new WindowChanger(this);
-
+        this.parent.addFrameListener(this.bufferImages);
         this.updateScalars();
 
     }
@@ -527,7 +533,6 @@ public class Calibrator extends Thread {
         this.manualWindow.setVisible(true);
         this.demoImage.createBufferStrategy(2);
         this.bfImage = this.demoImage.getBufferStrategy();
-        JHandControl.getInstance().addFrameListener(this.bufferImages);
     }
 
     public void hideManualCalibrator() {
@@ -573,7 +578,6 @@ public class Calibrator extends Thread {
         this.pauseButton = null;
         this.contourButton = null;
         this.demoImage = null;
-        JHandControl.getInstance().removeFrameListener(this.bufferImages);
     }
 
     public boolean isManualCalibratorVisible() {
@@ -595,23 +599,29 @@ public class Calibrator extends Thread {
 
     public void updateImage(JFrameHand newImage, boolean paused) {
         if (this.manualWindow == null) {
-            System.out.println("Janela ainda n setada");
+            return;
+        }
+        if(newImage == null){
             return;
         }
         Graphics g;
         if (this.pause && !paused) {
-            System.out.println("Ignorando imagem");
+            if (this.image == null) {
+                this.image = newImage.clone();
+            }
+            else{
+                newImage.close();
+            }
             return;
         }
-        if(this.image != null && !this.pause){
-            System.out.println("Fechando imagem");
+        if (this.image != null && !this.pause) {
             this.image.close();
         }
         this.image = newImage;
         if (this.image == null) {
-            System.out.println("Imagem nula..voltando");
             return;
         }
+        this.image.update();
         //System.out.println((this.pause)?"Pausado":"Continuando");
             /*
          * Mostra um grafico de demonstracao pq né
@@ -678,7 +688,7 @@ public class Calibrator extends Thread {
                             fill = 1;
                         }
                         if (this.modeContour < 2) {
-                            CvSeq contorno;
+                            
                             if (this.modeContour == 0) {
                                 contorno = hand.getContour();
                             } else {
@@ -686,9 +696,9 @@ public class Calibrator extends Thread {
                             }
                             cvDrawContours(tempImage, contorno, color, color, -1, fill, 8);
                         } else {
-                            CvRect contorno = hand.getRectCountour();
-                            int rectX = contorno.x(), rectY = contorno.y();
-                            int rectW = contorno.width() + rectX, rectH = contorno.height() + rectY;
+                            CvRect contornoRect = hand.getRectCountour();
+                            int rectX = contornoRect.x(), rectY = contornoRect.y();
+                            int rectW = contornoRect.width() + rectX, rectH = contornoRect.height() + rectY;
 
                             if (this.modeContour == 2) {
                                 cvDrawRect(tempImage, new CvPoint(rectX, rectY),
@@ -816,7 +826,6 @@ public class Calibrator extends Thread {
         double theMaxY, theMaxCr, theMaxCb, theMinY, theMinCr, theMinCb;
 
         if (yCrCbImage.isNull()) {
-            System.out.println("SA PORRA TA TRAVADA");
             return;
         }
         cvSetImageCOI(yCrCbImage, 1);
@@ -825,7 +834,6 @@ public class Calibrator extends Thread {
         theMaxY = tempMaxY[0];
 
         if (yCrCbImage.isNull()) {
-            System.out.println("SA PORRA TA TRAVADA");
             return;
         }
         cvSetImageCOI(yCrCbImage, 2);
@@ -834,7 +842,6 @@ public class Calibrator extends Thread {
         theMaxCr = tempMaxCr[0];
 
         if (yCrCbImage.isNull()) {
-            System.out.println("SA PORRA TA TRAVADA");
             return;
         }
         cvSetImageCOI(yCrCbImage, 3);
@@ -842,7 +849,6 @@ public class Calibrator extends Thread {
         theMinCb = tempMinCb[0];
         theMaxCb = tempMaxCb[0];
         if (yCrCbImage.isNull()) {
-            System.out.println("SA PORRA TA TRAVADA");
             return;
         }
         cvSetImageCOI(yCrCbImage, 0);
@@ -900,8 +906,6 @@ public class Calibrator extends Thread {
 
     public synchronized void run() {
         Graphics g = null;
-
-
         while (true) {
             try {
                 Thread.sleep(1000 / 50);
@@ -911,6 +915,9 @@ public class Calibrator extends Thread {
              this.manualWindow.repaint();
              }*/
             if (!this.pause) {
+                continue;
+            }
+            if (this.image == null) {
                 continue;
             }
             this.updateImage(this.image, true);
