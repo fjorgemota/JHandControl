@@ -9,6 +9,8 @@ import com.googlecode.javacv.cpp.opencv_core.CvMemStorage;
 import static com.googlecode.javacv.cpp.opencv_core.IPL_DEPTH_8U;
 import com.googlecode.javacv.cpp.opencv_core.IplImage;
 import static com.googlecode.javacv.cpp.opencv_core.cvCopy;
+import static com.googlecode.javacv.cpp.opencv_core.CV_ErrModeSilent;
+import static com.googlecode.javacv.cpp.opencv_core.cvSetErrMode;
 import static com.googlecode.javacv.cpp.opencv_core.cvFlip;
 import static com.googlecode.javacv.cpp.opencv_highgui.cvLoadImage;
 import java.util.ArrayList;
@@ -33,8 +35,9 @@ public class JHandControl extends Thread {
     private Comparator<JHandDetection> handSorter;
     private static JHandControl instance;
     private static int DEFAULT_CAMERA = -1;
-    private IplImage image = null, origImage = null, flipedImage = null, tempImage = null;
+    private IplImage image = null, origImage = null;
     public JHandControl(int autoconnect) {
+        cvSetErrMode(CV_ErrModeSilent);
         //this.lastImage = cvLoadImage("imagens/mao.jpg");
         this.callbacks = new ArrayList<FrameListener>();
         this.tempCallbacks = new ArrayList<FrameListener>();
@@ -138,7 +141,6 @@ public class JHandControl extends Thread {
             } catch (Exception ex) {
                 System.out.println(ex.getMessage());
             }
-            System.gc();
             /*if(this.callbacks.isEmpty()){
                 continue;
             }*/
@@ -161,10 +163,6 @@ public class JHandControl extends Thread {
             if (origImage == null && origImage.isNull()) {
                 continue;
             }
-            /*flipedImage = IplImage.create(origImage.cvSize(), origImage.depth(), origImage.nChannels());
-            cvFlip(origImage, flipedImage, 1);
-            tempImage = IplImage.create(origImage.cvSize(), origImage.depth(), origImage.nChannels());
-            cvCopy(flipedImage, tempImage);*/
             tempFrame = new JFrameHand(origImage, this);
             for(FrameListener callback: this.callbacks){
                 //tempFrame = tempFrame;
