@@ -5,24 +5,22 @@
 package jhandcontrol.data;
 
 import com.googlecode.javacpp.Loader;
-import com.googlecode.javacv.cpp.opencv_core;
-import com.googlecode.javacv.cpp.opencv_core.CvPoint;
 import com.googlecode.javacv.cpp.opencv_core.CvContour;
 import com.googlecode.javacv.cpp.opencv_core.CvMemStorage;
+import com.googlecode.javacv.cpp.opencv_core.CvPoint;
 import com.googlecode.javacv.cpp.opencv_core.CvRect;
 import com.googlecode.javacv.cpp.opencv_core.CvSeq;
 import com.googlecode.javacv.cpp.opencv_core.IplImage;
-import static com.googlecode.javacv.cpp.opencv_core.cvCloneSeq;
-import static com.googlecode.javacv.cpp.opencv_core.cvCopy;
+import static com.googlecode.javacv.cpp.opencv_core.cvClearMemStorage;
+import static com.googlecode.javacv.cpp.opencv_core.cvClearSeq;
+import static com.googlecode.javacv.cpp.opencv_core.cvGetSeqElem;
+import static com.googlecode.javacv.cpp.opencv_imgproc.CV_CHAIN_APPROX_SIMPLE;
+import static com.googlecode.javacv.cpp.opencv_imgproc.CV_POLY_APPROX_DP;
+import static com.googlecode.javacv.cpp.opencv_imgproc.CV_RETR_EXTERNAL;
 import static com.googlecode.javacv.cpp.opencv_imgproc.cvApproxPoly;
 import static com.googlecode.javacv.cpp.opencv_imgproc.cvBoundingRect;
-import static com.googlecode.javacv.cpp.opencv_imgproc.CV_POLY_APPROX_DP;
 import static com.googlecode.javacv.cpp.opencv_imgproc.cvContourPerimeter;
-import static com.googlecode.javacv.cpp.opencv_imgproc.CV_RETR_EXTERNAL;
-import static com.googlecode.javacv.cpp.opencv_imgproc.CV_CHAIN_APPROX_SIMPLE;
 import static com.googlecode.javacv.cpp.opencv_imgproc.cvFindContours;
-import static com.googlecode.javacv.cpp.opencv_core.cvGetSeqElem;
-
 import java.util.ArrayList;
 import jhandcontrol.JHandControl;
 import jhandcontrol.calibrator.Calibrator;
@@ -33,18 +31,20 @@ import jhandcontrol.utils.Line;
  * @author Fernando
  */
 public class JHandDetection {
-    public CvSeq contour = null, aprox = null;
-    public HandStatus status = null;
-    public CvRect rect = null;
-    public ArrayList<HandLine> lines = null; 
-    public static CvSeq tempContorno = null, tempAprox = null;
-    public static CvRect tempRect = null;
-    public static CvMemStorage memStore;
-    public static double tempPerimeter;
-    private JHandDetection(CvSeq contorno, CvSeq aprox, CvRect rect) {
+    private CvSeq contour = null, aprox = null;
+    private HandStatus status = null;
+    private CvRect rect = null;
+    private ArrayList<HandLine> lines = null;
+    private JFrameHand parent;
+    private static CvSeq tempContorno = null, tempAprox = null;
+    private static CvRect tempRect = null;
+    private static CvMemStorage memStore;
+    private static double tempPerimeter;
+    private JHandDetection(CvSeq contorno, CvSeq aprox, CvRect rect, JFrameHand frame) {
         this.contour = contorno;
         this.aprox = aprox;
         this.rect = rect;
+        this.parent = frame;
     }
 
     public CvSeq getContour() {
@@ -52,12 +52,6 @@ public class JHandDetection {
     }
 
     public CvSeq getSimplifiedContour() {
-            //System.out.println("Aproximacao:"+this.contour);
-        /*if(this.aprox == null){
-            CvMemStorage memStore = JHandControl.getInstance().getMemStore();
-            this.aprox = cvApproxPoly(this.contour, Loader.sizeof(CvContour.class),
-                                 memStore, CV_POLY_APPROX_DP, cvContourPerimeter(this.contour) * 0.02, 0);
-        }*/
         return this.aprox;
     }
     private ArrayList<Line> toLines(CvSeq contorno){
@@ -100,14 +94,14 @@ public class JHandDetection {
         if(this.lines != null){
             return this.lines;
         }
-        Calibrator calibrador = jhandcontrol.JHandControl.getInstance().getCalibrator();
+        Calibrator calibrador = this.parent.getParent().getCalibrator();
         int width = this.getWidth();
         int height = this.getHeight();
         int area = this.getArea();
         CvSeq contorno = this.getSimplifiedContour();
         ArrayList<Line> linhas = this.getSimplifiedLines();
-        int rectX = this.getX();
-        int rectY = this.getY();
+        int rectX = this.getX(false);
+        int rectY = this.getY(false);
         height += rectY;
         width += rectX;
         int rotate = 0; 
@@ -145,7 +139,7 @@ public class JHandDetection {
                             }
                         }
                         this.lines.add(linha);
-                        y += JHandControl.getInstance().getCalibrator().getMarginPrecision();
+                        y += calibrador.getMarginPrecision();
                     }
                     break;
                 case 1:
@@ -163,7 +157,7 @@ public class JHandDetection {
                             }
                         }
                         this.lines.add(linha);
-                        x += JHandControl.getInstance().getCalibrator().getMarginPrecision();
+                        x += calibrador.getMarginPrecision();
                     }
                     break;
                 case 2:
@@ -181,7 +175,7 @@ public class JHandDetection {
                             }
                         }
                         this.lines.add(linha);
-                        y -= JHandControl.getInstance().getCalibrator().getMarginPrecision();
+                        y -= calibrador.getMarginPrecision();
                     }
                     break;
                case 3:
@@ -199,7 +193,7 @@ public class JHandDetection {
                             }
                         }
                         this.lines.add(linha);
-                        x -= JHandControl.getInstance().getCalibrator().getMarginPrecision();
+                        x -= calibrador.getMarginPrecision();
                     }
                     break;
             }
@@ -211,7 +205,7 @@ public class JHandDetection {
         if(this.status != null){
             return this.status;
         }
-        Calibrator calibrador = jhandcontrol.JHandControl.getInstance().getCalibrator();
+        Calibrator calibrador = this.parent.getParent().getCalibrator();
         int width = this.getWidth();
         int height = this.getHeight();
         int area = this.getArea();
@@ -231,8 +225,8 @@ public class JHandDetection {
             return this.status;
         }
         ArrayList<Line> linhas = this.getSimplifiedLines();
-        int rectX = this.getX();
-        int rectY = this.getY();
+        int rectX = this.getX(false);
+        int rectY = this.getY(false);
         height += rectY;
         width += rectX;
         int rotate = 0; 
@@ -368,22 +362,73 @@ public class JHandDetection {
     public int getWidth() {
         return this.getRectCountour().width();
     }
-
-    public int getX() {
-        return this.getRectCountour().x();
+    public int getX(boolean invert) {
+        if(invert){
+            return this.parent.getImageWidth()-this.getRectCountour().x();
+        }
+        else{
+            return this.getRectCountour().x(); 
+       }
     }
 
-    public int getY() {
-        return this.getRectCountour().y();
+    public int getY(boolean invert) {
+        if(invert){
+            return this.parent.getImageHeight()-this.getRectCountour().y();
+        }
+        else{
+            return this.getRectCountour().y(); 
+        }
     }
-    
-    
-    public static ArrayList<JHandDetection> detect(IplImage binaryImage){
+    public int getX(){
+        return this.getX(true);
+    }
+    public int getY(){
+        return this.getY(true);
+    }
+    public int getX(int width, boolean invert){
+        return this.getX(invert)*(width/this.parent.getImageWidth());
+    }
+    public int getY(int height, boolean invert){
+        return this.getY(invert)*(height/this.parent.getImageHeight());
+    }
+    public int getX(int width){
+        return this.getX(width, true);
+    }
+    public int getY(int height){
+        return this.getY(height, true);
+    }
+    public int getCenterX(boolean invert){
+        return this.getX(invert)+(this.getWidth()/2);
+    }
+    public int getCenterY(boolean invert){
+        return this.getY(invert)+(this.getHeight()/2);
+    }
+    public int getCenterX(){
+        return this.getCenterX(true);
+    }
+    public int getCenterY(){
+        return this.getCenterY(true);
+    }
+    public int getCenterX(int width, boolean invert){
+        return this.getCenterX(invert)*(width/this.parent.getImageWidth());
+    }
+    public int getCenterY(int height, boolean invert){
+        return this.getCenterY(invert)*(height/this.parent.getImageHeight());
+    }
+    public int getCenterX(int width){
+        return this.getCenterX(width,true);
+    }
+    public int getCenterY(int height){
+        return this.getCenterY(height,true);
+    }
+    public static ArrayList<JHandDetection> detect(JFrameHand frame){
         ArrayList<JHandDetection> result = new ArrayList<JHandDetection>();
         
         tempContorno = new CvSeq(null);
-        
-        memStore = JHandControl.getInstance().getMemStore();
+        JHandControl instance = frame.getParent();
+        IplImage binaryImage = frame.getBinaryImage();
+        memStore = instance.getMemStore();
+        //cvClearMemStorage(memStore);
         //IplImage theImage = IplImage.createFrom(binaryImage.getBufferedImage());
         /*IplImage theImage = IplImage.create(binaryImage.width(), binaryImage.height(),
                 binaryImage.depth(), binaryImage.nChannels());
@@ -392,7 +437,6 @@ public class JHandDetection {
             memStore = JHandControl.getInstance().createMemStore();
         }
         if(binaryImage == null || binaryImage.isNull() || binaryImage.nSize() <1 || binaryImage.nChannels()!=1 || binaryImage.sizeof()<1){
-            System.out.println("Voltando..");
             return result;
         }
         cvFindContours(binaryImage, memStore,
@@ -430,7 +474,7 @@ public class JHandDetection {
                 ex.printStackTrace();
                 continue;
             }
-            JHandDetection detection = new JHandDetection(tempContorno,tempAprox, tempRect);
+            JHandDetection detection = new JHandDetection(tempContorno,tempAprox, tempRect, frame);
             result.add(detection);
             if(tempContorno == null || tempContorno.isNull()){
                 continue;
@@ -440,11 +484,14 @@ public class JHandDetection {
         return result;
     }
     @Override
-    public void finalize(){
-        if(this.contour != null){
+    public void finalize() throws Throwable{
+        super.finalize();
+        if(this.contour != null && !this.contour.isNull()){
+            //cvClearSeq(this.contour);
             this.contour = null;
         }
-        if(this.aprox != null){
+        if(this.aprox != null && !this.aprox.isNull()){
+            //cvClearSeq(this.aprox);
             this.aprox = null;
         }
         if(this.rect != null){

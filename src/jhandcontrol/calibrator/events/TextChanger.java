@@ -22,6 +22,9 @@ public class TextChanger implements ActionListener{
         this.calibrador = instance;
     }
     public void actionPerformed(ActionEvent e) {
+        if(!this.calibrador.isManualCalibratorStarted()){
+            return;
+        }
         JTextField textField = (JTextField) e.getSource();
         if(textField == null || textField.getToolTipText() == null){
             return;

@@ -20,6 +20,9 @@ public class Changer implements ChangeListener{
         this.calibrador = instance;
     }
     public void stateChanged(ChangeEvent e){
+        if(!this.calibrador.isManualCalibratorStarted()){
+            return;
+        }
         RangeSlider slider = (RangeSlider) e.getSource();
         if(slider == null || slider.getToolTipText() == null){
             return;

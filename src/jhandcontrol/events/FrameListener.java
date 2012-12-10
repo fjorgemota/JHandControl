@@ -11,5 +11,5 @@ import jhandcontrol.data.JFrameHand;
  * @author Fernando
  */
 public interface FrameListener {
-    public void frameEvent(JFrameHand frame);
+    public boolean frameReceived(JFrameHand frame);
 }

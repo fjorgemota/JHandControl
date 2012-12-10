@@ -28,20 +28,22 @@ class HandListener implements FrameListener {
     }
 
     @Override
-    public void frameEvent(JFrameHand frame) {
+    public synchronized boolean frameReceived(JFrameHand frame) {
         if(JHandControl.getInstance().getCalibrator().isManualCalibratorVisible()){
-            return;
+            return true;
         }
         ArrayList<JHandDetection> hands = frame.getHands();
         if(hands.isEmpty()){
-            return;
+            return true;
         }
         for (JHandDetection tempHand : hands) {
             if (tempHand.getStatus() != HandStatus.UNRECOGNIZED) {
                 this.hand = tempHand;
-                break;
+                return true;
             }
         }
+        hands.clear();
+        return true;
     }
     public JHandDetection getHand(){
         return this.hand;
@@ -62,6 +64,7 @@ public class Demonstration {
         JHandControl.setDefaultCamera(0);
         JHandControl lib = JHandControl.getInstance();
         lib.addFrameListener(listener);
+        lib.setLimitHands(1);
         lib.start();
         Mouse mouse = new Mouse();
         JFrame demoWindow = new JFrame("Demonstracao");
@@ -92,7 +95,7 @@ public class Demonstration {
                 } else {
                     g.setColor(Color.BLUE);
                 }
-                g.fillOval(hand.getX() + (hand.getWidth() / 2), hand.getY() + (hand.getHeight() / 2), 20, 20);
+                g.fillOval(hand.getCenterX(demoWindow.getWidth()), hand.getCenterY(demoWindow.getHeight()), 20, 20);
             }
             if (mouse.isLeftButtonPressed() && rect.contains(mouse.getMousePos())) {
                 lib.getCalibrator().showManualCalibrator();

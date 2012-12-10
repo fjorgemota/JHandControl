@@ -4,15 +4,20 @@
  */
 package jhandcontrol;
 
-import jhandcontrol.data.HandStatus;
-import jhandcontrol.calibrator.Calibrator;
-import com.googlecode.javacpp.Loader;
 import com.googlecode.javacv.FrameGrabber;
-import static com.googlecode.javacv.cpp.opencv_core.*;
-import static com.googlecode.javacv.cpp.opencv_highgui.*;
-import java.util.*;
+import com.googlecode.javacv.cpp.opencv_core.CvMemStorage;
+import static com.googlecode.javacv.cpp.opencv_core.IPL_DEPTH_8U;
+import com.googlecode.javacv.cpp.opencv_core.IplImage;
+import static com.googlecode.javacv.cpp.opencv_core.cvCopy;
+import static com.googlecode.javacv.cpp.opencv_core.cvFlip;
+import static com.googlecode.javacv.cpp.opencv_highgui.cvLoadImage;
+import java.util.ArrayList;
+import java.util.Comparator;
+import jhandcontrol.calibrator.Calibrator;
 import jhandcontrol.data.JFrameHand;
+import jhandcontrol.data.JHandDetection;
 import jhandcontrol.events.FrameListener;
+import jhandcontrol.sorters.AreaSorter;
 
 /**
  *
@@ -21,18 +26,22 @@ import jhandcontrol.events.FrameListener;
 public class JHandControl extends Thread {
     private ArrayList<FrameListener> callbacks, tempCallbacks;
     private Calibrator calibrator;
-    public JFrameHand lastFrame = null, tempFrame = null;
+    private JFrameHand lastFrame = null, tempFrame = null;
     private FrameGrabber camera;
-    public CvMemStorage memStore = null;
+    private CvMemStorage memStore = null;
+    private int limitHands;
+    private Comparator<JHandDetection> handSorter;
     private static JHandControl instance;
     private static int DEFAULT_CAMERA = -1;
-    public IplImage image = null, tempImage = null;
+    private IplImage image = null, origImage = null, flipedImage = null, tempImage = null;
     public JHandControl(int autoconnect) {
         //this.lastImage = cvLoadImage("imagens/mao.jpg");
         this.callbacks = new ArrayList<FrameListener>();
         this.tempCallbacks = new ArrayList<FrameListener>();
         this.memStore = CvMemStorage.create(0);
         this.image = null;
+        this.handSorter = new AreaSorter();
+        this.limitHands = 10;
         this.calibrator = new Calibrator(this);
         this.calibrator.start();
         /*
@@ -76,7 +85,6 @@ public class JHandControl extends Thread {
         return false;
     }
     public void setImage(String newImage){
-        System.out.println(newImage);
         if(newImage == null){
             this.image = null;
         }
@@ -84,6 +92,23 @@ public class JHandControl extends Thread {
             this.image = cvLoadImage(newImage);
         }
     }
+
+    public int getLimitHands() {
+        return limitHands;
+    }
+
+    public void setLimitHands(int limitHands) {
+        this.limitHands = limitHands;
+    }
+
+    public Comparator<JHandDetection> getHandSorter() {
+        return handSorter;
+    }
+
+    public void setHandSorter(Comparator<JHandDetection> handSorter) {
+        this.handSorter = handSorter;
+    }
+    
     public Calibrator getCalibrator() {
         return this.calibrator;
     }
@@ -104,7 +129,7 @@ public class JHandControl extends Thread {
     public boolean isLive(){
         return this.image == null;
     }
-    public synchronized void run() {
+    public void run() {
         //localFramed = null;
         while (true) {
             System.gc();
@@ -113,12 +138,15 @@ public class JHandControl extends Thread {
             } catch (Exception ex) {
                 System.out.println(ex.getMessage());
             }
+            System.gc();
             /*if(this.callbacks.isEmpty()){
                 continue;
             }*/
             if(image == null){
                 try {
-                    tempImage = camera.grab();
+                    origImage = camera.grab();
+                    //tempImage = IplImage.create(640, 480, IPL_DEPTH_8U, 3);
+                    //cvSet(tempImage, CV_RGB(255,255,255));
                 } catch (Exception ex) {
                     //ex.printStackTrace();
                     System.out.println("Camera: "+ex.getMessage());
@@ -126,21 +154,27 @@ public class JHandControl extends Thread {
                 }
             }
             else{
-                tempImage = IplImage.create(image.width(), image.height(),
+                origImage = IplImage.create(image.width(), image.height(),
                         IPL_DEPTH_8U, image.nChannels());
-                cvCopy(image, tempImage);
+                cvCopy(image, origImage);
             }
-            if (tempImage == null && tempImage.isNull()) {
+            if (origImage == null && origImage.isNull()) {
                 continue;
             }
-            tempFrame = new JFrameHand(tempImage, this);
+            /*flipedImage = IplImage.create(origImage.cvSize(), origImage.depth(), origImage.nChannels());
+            cvFlip(origImage, flipedImage, 1);
+            tempImage = IplImage.create(origImage.cvSize(), origImage.depth(), origImage.nChannels());
+            cvCopy(flipedImage, tempImage);*/
+            tempFrame = new JFrameHand(origImage, this);
             for(FrameListener callback: this.callbacks){
                 //tempFrame = tempFrame;
-                callback.frameEvent(tempFrame);
+                if(!callback.frameReceived(tempFrame)){
+                    break;
+                }
             }
-            //tempFrame.close();
+            //
             //tempFrame.update();
-            this.callbacks = this.tempCallbacks;
+            this.callbacks = this.tempCallbacks;         
         }
     }
 

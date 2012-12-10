@@ -8,6 +8,7 @@ import com.googlecode.javacv.cpp.opencv_core.IplImage;
 import static com.googlecode.javacv.cpp.opencv_core.*;
 import static com.googlecode.javacv.cpp.opencv_imgproc.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import jhandcontrol.JHandControl;
 
 /**
@@ -57,8 +58,8 @@ public class JFrameHand implements Cloneable {
          */
         yCrCbImage = this.getYCrCbImage();
         cvInRangeS(yCrCbImage,
-                JHandControl.getInstance().getCalibrator().getMinScalar(),
-                JHandControl.getInstance().getCalibrator().getMaxScalar(),
+                this.parent.getCalibrator().getMinScalar(),
+                this.parent.getCalibrator().getMaxScalar(),
                 binaryImage);
         //yCrCbImage.release();
         //yCrCbImage = null;
@@ -74,10 +75,27 @@ public class JFrameHand implements Cloneable {
 
     public ArrayList<JHandDetection> getHands() {
         if (searched == false) {
-            binaryImage = this.getBinaryImage();
-            hands = JHandDetection.detect(binaryImage);
-            binaryImage.release(); // Don't comment if you don't want to see a 
-            binaryImage = null; // ACCESS_VIOLATION error in OpenCV 2.4.3 in Windows
+            ArrayList<JHandDetection> tempDetections = 
+                    JHandDetection.detect(this),
+                    tempHands = new ArrayList<JHandDetection>();
+            if(binaryImage != null){
+                binaryImage.release(); // Don't comment if you don't want to see a 
+                binaryImage = null; // ACCESS_VIOLATION error in OpenCV 2.4.3 in Windows
+            }
+            JHandDetection[] tempArray = new JHandDetection[0];
+            tempArray = tempDetections.toArray(tempArray);
+            Arrays.sort(tempArray, this.parent.getHandSorter());
+            int limit = this.parent.getLimitHands();
+            for(JHandDetection detection: tempArray){
+                if(limit != -1 & tempHands.size() >= limit){
+                    break;
+                }
+                tempHands.add(detection);
+            }
+            this.hands = tempHands;
+            tempDetections.clear();
+            tempDetections = null;
+            tempArray = null;
             this.searched = true;
         }
         return hands;
@@ -127,10 +145,14 @@ public class JFrameHand implements Cloneable {
 
     public void close() {
         this.update();
-        if (!this.parent.isLive() && this.coloredImage != null && !this.parent.getCalibrator().isPaused()) {
+        if (!this.parent.isLive() && this.coloredImage != null) {
             this.coloredImage.release();
             this.coloredImage = null;
         }
+    }
+
+    public JHandControl getParent() {
+        return parent;
     }
 
     @Override
