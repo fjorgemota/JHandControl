@@ -436,6 +436,7 @@ public class JHandDetection {
         if(memStore == null && memStore.isNull()){
             memStore = JHandControl.getInstance().createMemStore();
         }
+        cvClearMemStorage(memStore);
         if(binaryImage == null || binaryImage.isNull() || binaryImage.nSize() <1 || binaryImage.nChannels()!=1 || binaryImage.sizeof()<1){
             return result;
         }
