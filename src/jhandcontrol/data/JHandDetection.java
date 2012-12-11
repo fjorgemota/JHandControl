@@ -54,6 +54,9 @@ public class JHandDetection {
     public CvSeq getSimplifiedContour() {
         return this.aprox;
     }
+
+    
+    
     private ArrayList<Line> toLines(CvSeq contorno){
         ArrayList<Line> linhas = new ArrayList<Line>();
         int c=0;
@@ -101,7 +104,7 @@ public class JHandDetection {
         CvSeq contorno = this.getSimplifiedContour();
         ArrayList<Line> linhas = this.getSimplifiedLines();
         int rectX = this.getX(false);
-        int rectY = this.getY(false);
+        int rectY = this.getY();
         height += rectY;
         width += rectX;
         int rotate = 0; 
@@ -226,7 +229,7 @@ public class JHandDetection {
         }
         ArrayList<Line> linhas = this.getSimplifiedLines();
         int rectX = this.getX(false);
-        int rectY = this.getY(false);
+        int rectY = this.getY();
         height += rectY;
         width += rectX;
         int rotate = 0; 
@@ -371,55 +374,39 @@ public class JHandDetection {
        }
     }
 
-    public int getY(boolean invert) {
-        if(invert){
-            return this.parent.getImageHeight()-this.getRectCountour().y();
-        }
-        else{
+    public int getY() {
             return this.getRectCountour().y(); 
-        }
     }
     public int getX(){
         return this.getX(true);
     }
-    public int getY(){
-        return this.getY(true);
-    }
     public int getX(int width, boolean invert){
         return this.getX(invert)*(width/this.parent.getImageWidth());
     }
-    public int getY(int height, boolean invert){
-        return this.getY(invert)*(height/this.parent.getImageHeight());
+    public int getY(int height){
+        return this.getY()*(height/this.parent.getImageHeight());
     }
     public int getX(int width){
         return this.getX(width, true);
     }
-    public int getY(int height){
-        return this.getY(height, true);
-    }
+
     public int getCenterX(boolean invert){
         return this.getX(invert)+(this.getWidth()/2);
     }
-    public int getCenterY(boolean invert){
-        return this.getY(invert)+(this.getHeight()/2);
+    public int getCenterY(){
+        return this.getY()+(this.getHeight()/2);
     }
     public int getCenterX(){
         return this.getCenterX(true);
     }
-    public int getCenterY(){
-        return this.getCenterY(true);
-    }
     public int getCenterX(int width, boolean invert){
         return this.getCenterX(invert)*(width/this.parent.getImageWidth());
     }
-    public int getCenterY(int height, boolean invert){
-        return this.getCenterY(invert)*(height/this.parent.getImageHeight());
+    public int getCenterY(int height){
+        return this.getCenterY()*(height/this.parent.getImageHeight());
     }
     public int getCenterX(int width){
         return this.getCenterX(width,true);
-    }
-    public int getCenterY(int height){
-        return this.getCenterY(height,true);
     }
     public static ArrayList<JHandDetection> detect(JFrameHand frame){
         ArrayList<JHandDetection> result = new ArrayList<JHandDetection>();
@@ -436,7 +423,9 @@ public class JHandDetection {
         if(memStore == null && memStore.isNull()){
             memStore = JHandControl.getInstance().createMemStore();
         }
-        cvClearMemStorage(memStore);
+        if(frame.getParent().isMemoryLeakControllerActivated()){
+            cvClearMemStorage(memStore);
+        }
         if(binaryImage == null || binaryImage.isNull() || binaryImage.nSize() <1 || binaryImage.nChannels()!=1 || binaryImage.sizeof()<1){
             return result;
         }
@@ -457,7 +446,7 @@ public class JHandDetection {
                 continue;
             }
             try{
-                tempPerimeter = cvContourPerimeter(tempContorno) * 0.02;
+                tempPerimeter = cvContourPerimeter(tempContorno) * 0.01;
                 tempAprox = cvApproxPoly(tempContorno, Loader.sizeof(CvContour.class),
                                      memStore, CV_POLY_APPROX_DP, tempPerimeter, 0);
             }

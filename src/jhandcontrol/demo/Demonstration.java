@@ -12,6 +12,7 @@ import java.awt.image.BufferStrategy;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import jhandcontrol.JHandControl;
 import jhandcontrol.calibrator.utils.Mouse;
 import jhandcontrol.data.HandStatus;
@@ -65,11 +66,13 @@ public class Demonstration {
         JHandControl lib = JHandControl.getInstance();
         lib.addFrameListener(listener);
         lib.setLimitHands(1);
+        lib.setMemoryLeakController(JOptionPane.showConfirmDialog(null, "Você deseja ativar o modo de controlador de memória automático? (dependendo do seu ambiente, diminui o consumo de memória, mas pode resultar em travamentos)", "Confirmação",
+        JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION);
         lib.start();
         Mouse mouse = new Mouse();
         JFrame demoWindow = new JFrame("Demonstracao");
         demoWindow.setVisible(true);
-        demoWindow.setSize(800, 600);
+        demoWindow.setSize(640, 480);
         demoWindow.createBufferStrategy(2);
         demoWindow.addMouseListener(mouse);
         demoWindow.addMouseMotionListener(mouse);
@@ -84,7 +87,7 @@ public class Demonstration {
             } catch (Exception ex) {
             }
             Graphics g = bf.getDrawGraphics();
-            g.clearRect(0, 0, 800, 600);
+            g.clearRect(0, 0, 640, 480);
             hand = listener.getHand();
             g.setColor(Color.BLACK);
             g.drawRect(10, 50, 100, 100);

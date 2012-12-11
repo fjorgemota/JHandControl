@@ -23,10 +23,6 @@ public class JFrameHand implements Cloneable {
     private JHandControl parent;
 
     public JFrameHand(IplImage theImage, JHandControl instance) {
-        /*
-         * Imagem Colorida
-         */
-        //this.coloredImage = IplImage.createFrom(theImage.getBufferedImage());
         this.coloredImage = theImage;
         this.parent = instance;
         this.searched = false;
@@ -35,6 +31,9 @@ public class JFrameHand implements Cloneable {
 
     @Override
     public JFrameHand clone() {
+        /*
+         * Copia a imagem, caso seja....possivel
+         */
         IplImage oldImage = this.getColoredImage();
         if (oldImage == null) {
             return null;
@@ -79,8 +78,8 @@ public class JFrameHand implements Cloneable {
                     JHandDetection.detect(this),
                     tempHands = new ArrayList<JHandDetection>();
             if(binaryImage != null){
-                binaryImage.release(); // Don't comment if you don't want to see a 
-                binaryImage = null; // ACCESS_VIOLATION error in OpenCV 2.4.3 in Windows
+                binaryImage.release();
+                binaryImage = null;
             }
             JHandDetection[] tempArray = new JHandDetection[0];
             tempArray = tempDetections.toArray(tempArray);
@@ -122,12 +121,14 @@ public class JFrameHand implements Cloneable {
          */
         yCrCbImage = IplImage.create(this.getImageWidth(), this.getImageHeight(), IPL_DEPTH_8U, 3);
         cvCvtColor(this.coloredImage, yCrCbImage, CV_BGR2YCrCb);
-        //cvCopy(this.coloredImage, yCrCbImage);
 
         return yCrCbImage;
     }
 
     public void update() {
+        /*
+         * Atualiza e limpa parte da memória consumida por este frame
+         */
         if (this.hands != null) {
             this.hands.clear();
             this.hands = null;
@@ -144,6 +145,9 @@ public class JFrameHand implements Cloneable {
     }
 
     public void close() {
+        /*
+         * Fecha definitivamente o frame
+         */
         this.update();
         if (!this.parent.isLive() && this.coloredImage != null) {
             this.coloredImage.release();
@@ -152,13 +156,18 @@ public class JFrameHand implements Cloneable {
     }
 
     public JHandControl getParent() {
+        /*
+         * Retorna o objeto ao qual este frame está associado
+         */
         return parent;
     }
 
     @Override
     public void finalize() throws Throwable {
+        /*
+         * Método usado pelo Garbage Collector ao encerrar este frame
+         */
         super.finalize();
         this.close();
     }
-    // Dizem que é lento, então..tá
 }

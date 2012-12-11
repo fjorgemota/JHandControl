@@ -30,6 +30,7 @@ public class JHandControl extends Thread {
     private Calibrator calibrator;
     private JFrameHand lastFrame = null, tempFrame = null;
     private FrameGrabber camera;
+    private boolean memoryLeakController;
     private CvMemStorage memStore = null;
     private int limitHands;
     private Comparator<JHandDetection> handSorter;
@@ -114,6 +115,13 @@ public class JHandControl extends Thread {
     
     public Calibrator getCalibrator() {
         return this.calibrator;
+    }
+    public boolean isMemoryLeakControllerActivated() {
+        return memoryLeakController;
+    }
+
+    public void setMemoryLeakController(boolean memoryLeakController) {
+        this.memoryLeakController = memoryLeakController;
     }
     public CvMemStorage getMemStore(){
         return this.memStore;

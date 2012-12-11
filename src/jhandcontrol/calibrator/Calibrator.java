@@ -18,6 +18,8 @@ import jhandcontrol.calibrator.utils.RangeSlider;
 import static com.googlecode.javacv.cpp.opencv_imgproc.*;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import javax.swing.JButton;
 import javax.swing.JSlider;
 import javax.swing.JTextField;
@@ -48,6 +50,14 @@ class FrameQueue implements FrameListener {
     }
 }
 
+class ColorSorter implements Comparator<Integer> {
+
+    @Override
+    public int compare(Integer o1, Integer o2) {
+        return o1.intValue()-o2.intValue();
+    }
+}
+
 /**
  *
  * @author fernando
@@ -71,7 +81,7 @@ public class Calibrator extends Thread {
             minAreaOpenedInput, maxAreaOpenedInput, marginPrecisionInput;
     private JButton imageModeButton, handModeButton, pauseButton, contourButton;
     private Canvas demoImage;
-    public JFrameHand image = null;
+    private JFrameHand image = null;
     private boolean autocalibrator, pause, started;
     private BufferStrategy bfImage;
     private static Calibrator instance;
@@ -87,7 +97,9 @@ public class Calibrator extends Thread {
     private CvFont textFont;
     private JHandControl parent;
     private CvSeq contorno = null;
-    private boolean semiCalibrated; 
+    private boolean semiCalibrated;
+    private ColorSorter colorSorter;
+
     public Calibrator(JHandControl instance) {
         this.parent = instance;
         this.bufferImages = new FrameQueue(this);
@@ -117,6 +129,7 @@ public class Calibrator extends Thread {
         this.maxPointsClosed = 11;
         //cvInRangeS(newImage, cvScalar(50, 120, 104, 0), cvScalar(160, 170, 140, 0), binaryImage);
         this.autocalibrator = false;
+        this.colorSorter = new ColorSorter();
         this.textFont = new CvFont(CV_FONT_HERSHEY_SCRIPT_SIMPLEX, 0.4, 1);
         this.started = false;
         this.sliderChanger = new Changer(this);
@@ -447,44 +460,61 @@ public class Calibrator extends Thread {
     }
 
     private void updateColors(IplImage resizedYCrCbImage) {
+        if (this.pontosAutoCalibrador.size() == 0) {
+            return;
+        }
         CvScalar pixel;
-        int YColor, CrColor, CbColor;
+        int lowestYColor,
+                lowestCrColor,
+                lowestCbColor,
+                highestYColor,
+                highestCrColor,
+                highestCbColor,
+                count = 0,
+                tamanho = this.pontosAutoCalibrador.size();
+        Integer[] YColors = new Integer[tamanho],
+                CrColors = new Integer[tamanho],
+                CbColors = new Integer[tamanho];
         for (Point ponto : this.pontosAutoCalibrador) {
             pixel = cvGet2D(resizedYCrCbImage, (int) ponto.getY(),
                     (int) ponto.getX());
-            YColor = (int) pixel.getVal(0);
-            CrColor = (int) pixel.getVal(1);
-            CbColor = (int) pixel.getVal(2);
-            if (this.maxY < YColor) {
-                this.setMaxY(YColor);
-            }
-            if (this.maxCr < CrColor) {
-                this.setMaxCr(CrColor);
-            }
-            if (this.maxCb < CbColor) {
-                this.setMaxCb(CbColor);
-            }
+            YColors[count] = (int) pixel.getVal(0);
+            CrColors[count] = (int) pixel.getVal(1);
+            CbColors[count] = (int) pixel.getVal(2);
+            ++count;
         }
-        if(!this.semiCalibrated){
+        Arrays.sort(YColors, this.colorSorter);
+        Arrays.sort(CrColors, this.colorSorter);
+        Arrays.sort(CbColors, this.colorSorter);
+        lowestYColor = YColors[0];
+        lowestCrColor = CrColors[0];
+        lowestCbColor = CbColors[0];
+        highestYColor = YColors[tamanho - 1];
+        highestCrColor = CrColors[tamanho - 1];
+        highestCbColor = CbColors[tamanho - 1];
+       
+        if (this.maxY < highestYColor) {
+            this.setMaxY(highestYColor);
+        }
+        if (this.maxCr < highestCrColor) {
+            this.setMaxCr(highestCrColor);
+        }
+        if (this.maxCb < highestCbColor) {
+            this.setMaxCb(highestCbColor);
+        }
+        if (!this.semiCalibrated) {
             this.setMinY(this.getMaxY());
             this.setMinCr(this.getMaxCr());
             this.setMinCb(this.getMaxCb());
         }
-        for (Point ponto : this.pontosAutoCalibrador) {
-            pixel = cvGet2D(resizedYCrCbImage, (int) ponto.getY(),
-                    (int) ponto.getX());
-            YColor = (int) pixel.getVal(0);
-            CrColor = (int) pixel.getVal(1);
-            CbColor = (int) pixel.getVal(2);
-            if (this.minY > YColor) {
-                this.setMinY(YColor);
-            }
-            if (this.minCr > CrColor) {
-                this.setMinCr(CrColor);
-            }
-            if (this.minCb > CbColor) {
-                this.setMinCb(CbColor);
-            }
+        if (this.minY > lowestYColor) {
+            this.setMinY(lowestYColor);
+        }
+        if (this.minCr > lowestCrColor) {
+            this.setMinCr(lowestCrColor);
+        }
+        if (this.minCb > lowestCbColor) {
+            this.setMinCb(lowestCbColor);
         }
     }
 
@@ -535,7 +565,9 @@ public class Calibrator extends Thread {
     public boolean isManualCalibratorStarted() {
         return this.started;
     }
-
+    public JFrame getManualCalibrator() {
+        return this.manualWindow;
+    }
     public void hideManualCalibrator() {
         if (!this.isManualCalibratorVisible()) {
             return;
@@ -622,10 +654,6 @@ public class Calibrator extends Thread {
             return;
         }
         this.image.update();
-        //System.out.println((this.pause)?"Pausado":"Continuando");
-            /*
-         * Mostra um grafico de demonstracao pq né
-         */
         IplImage yCrCbImage = this.image.getYCrCbImage();
         if (this.bfImage != null) {
             try {
@@ -636,33 +664,31 @@ public class Calibrator extends Thread {
             Color oldColor;
             if (g != null) {
                 Graphics2D g2d = (Graphics2D) g;
-                //g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                //g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
                 IplImage fromImage = null;
                 switch (this.modeImage) {
                     case 0:
-                        fromImage = this.image.getColoredImage();
+                        fromImage = this.image.getColoredImage();  // Pega a imagem colorida
                         break;
                     case 1:
-                        fromImage = this.image.getYCrCbImage();
+                        fromImage = this.image.getYCrCbImage(); // Pega a imagem YCrCb
                         break;
                     case 2:
-                        fromImage = this.image.getBinaryImage();
+                        fromImage = this.image.getBinaryImage(); // Pega a imagem binária
                         break;
                     case 3:
                         fromImage = IplImage.create(this.image.getImageWidth(),
                                 this.image.getImageHeight(),
-                                IPL_DEPTH_8U, 3);
-                        cvDrawRect(fromImage, new CvPoint(0, 0), new CvPoint(fromImage.width(), fromImage.height()),
-                                CV_RGB(255, 255, 255), CV_FILLED, CV_AA, 0);
+                                IPL_DEPTH_8U, 3);  // Pega a imagem...não, não é uma imagem, em vez disso cria um em branco e cabou-se :)
+                        /*cvDrawRect(fromImage, new CvPoint(0, 0), new CvPoint(fromImage.width(), fromImage.height()),
+                                CV_RGB(255, 255, 255), CV_FILLED, CV_AA, 0); // Método antigo */
+                        cvSet(fromImage, CV_RGB(255, 255, 255)); // Pinta a imagem criada com a cor branca 
                         break;
                 }
                 IplImage tempImage = IplImage.create(this.image.getImageWidth(), this.image.getImageHeight(), IPL_DEPTH_8U, fromImage.nChannels());
                 cvCopy(fromImage, tempImage);
-                ArrayList<JHandDetection> hands = this.image.getHands();
+                ArrayList<JHandDetection> hands = (ArrayList<JHandDetection>) this.image.getHands().clone();
                 if (this.modeImage != 2 && this.modeHand != 5) {
                     for (JHandDetection hand : hands) {
-                        // Simplifica os contornos, deixando-os sobre a forma de um poligono
                         CvScalar color;
                         int fill;
                         HandStatus status = hand.getStatus();
@@ -690,39 +716,43 @@ public class Calibrator extends Thread {
                         if (this.modeContour < 2) {
 
                             if (this.modeContour == 0) {
-                                contorno = hand.getContour();
+                                contorno = hand.getContour(); // Pega o contorno preciso, conforme configuracao
                             } else {
-                                contorno = hand.getSimplifiedContour();
+                                contorno = hand.getSimplifiedContour(); // Pega o contorno simplificado, conforme configuracao
                             }
-                            cvDrawContours(tempImage, contorno, color, color, -1, fill, 8);
+                            cvDrawContours(tempImage, contorno, color, color, -1, fill, 8); // Desenha o contorno escolhido 
                         } else {
                             CvRect contornoRect = hand.getRectCountour();
-                            int rectX = contornoRect.x(), rectY = contornoRect.y();
-                            int rectW = contornoRect.width() + rectX, rectH = contornoRect.height() + rectY;
+                            int rectX = contornoRect.x(), rectY = contornoRect.y(); // Pega posição X e Y
+                            int rectW = contornoRect.width() + rectX, rectH = contornoRect.height() + rectY; // Pega X e Y finais usando largura e altura
 
                             if (this.modeContour == 2) {
                                 cvDrawRect(tempImage, new CvPoint(rectX, rectY),
                                         new CvPoint(rectW, rectH),
-                                        color, fill, CV_AA, 0);
+                                        color, fill, CV_AA, 0); // Desenha um retangulo da cor esperada caso esteja no modo correspondente
                             } else {
-                                cvDrawContours(tempImage, hand.getSimplifiedContour(), color, color, -1, fill, 8);
+                                cvDrawContours(tempImage, hand.getSimplifiedContour(), color, color, -1, fill, 8); // Desenha um contorno simplificado
                                 for (HandLine line : hand.getIntersectionLines()) {
                                     if (line.getIntersectCount() > 4) {
-                                        color = CV_RGB(255, 0, 0);
+                                        color = CV_RGB(255, 0, 0); // Pinta de vermelho caso bata a condição de uma mão aberta
                                     } else if (line.getIntersectCount() == 2) {
-                                        color = CV_RGB(0, 255, 0);
+                                        color = CV_RGB(0, 255, 0); // Pinta de verde caso bata a condição de uma mão fechada
                                     } else {
-                                        color = CV_RGB(0, 0, 255);
+                                        color = CV_RGB(0, 0, 255); // Pinta de azul caso não bata nenhuma condição
                                     }
-                                    cvDrawLine(tempImage, line.getFirstPoint(), line.getSecondPoint(), color, 1, CV_AA, 0);
-                                    cvPutText(tempImage, line.getIntersectCount() + "", new CvPoint(line.getSecondPoint().x() + (line.isHorizontal() ? 20 : 0), line.getSecondPoint().y() + (line.isHorizontal() ? 0 : 20)), textFont, color);
+                                    cvDrawLine(tempImage, line.getFirstPoint(), line.getSecondPoint(), color, 1, CV_AA, 0);// Desenha uma linha seguindo a orientação do sistema
+                                    cvPutText(tempImage, line.getIntersectCount() + "", new CvPoint(line.getSecondPoint().x() + (line.isHorizontal() ? 20 : 0), line.getSecondPoint().y() + (line.isHorizontal() ? 0 : 20)), textFont, color); // Escreve um número ao lado da linha
                                 }
                             }
                         }
                     }
                 }
+                hands.clear();
+                if (fromImage == null && fromImage.isNull()) {
+                    return;
+                }
                 IplImage resizedImage = IplImage.create(640, 480, IPL_DEPTH_8U, fromImage.nChannels());
-                // Redimensiona a imagem
+                // Redimensiona a imagem para se adaptar à tela 
                 cvResize(tempImage, resizedImage);
                 BufferedImage bufImage = resizedImage.getBufferedImage();
                 g.drawImage(bufImage, 650, 40, this.manualWindow);
@@ -785,8 +815,8 @@ public class Calibrator extends Thread {
                 Point mouseLocation = new Point(mouseX, mouseY);
                 if (this.mouseListener.isLeftButtonPressed() && mouseValid && this.autoMode == 1) {
                     this.pontosAutoCalibrador.add(mouseLocation);
-                } else if (this.mouseListener.isLeftButtonPressed() && mouseValid && this.autoMode == 2 && delayLeftClick > 10) {
-                    if(!this.semiCalibrated){
+                } else if (this.mouseListener.isLeftButtonPressed() && mouseValid && this.autoMode == 2 && delayLeftClick > 5) {
+                    if (!this.semiCalibrated) {
                         this.resetColors();
                     }
                     Rectangle rect = new Rectangle(mouseX - 5, mouseY - 5, 10, 10);
@@ -863,7 +893,6 @@ public class Calibrator extends Thread {
         cvSetImageCOI(yCrCbImage, 0);
         yCrCbImage.release();
 
-
         if (this.manualWindow != null && this.manualWindow.isVisible()) {
             if (this.YChannel != null && this.YChannel.getMinimum() > theMinY) {
                 this.YChannel.setMinimum((int) theMinY);
@@ -886,15 +915,21 @@ public class Calibrator extends Thread {
                 this.CbChannel.setMaximum((int) theMaxCb);
             }
             if (this.image.getColoredImage().isNull()) {
-                System.out.println("SA PORRA TA TRAVADA");
                 return;
             }
             int area = (this.image.getImageHeight() * this.image.getImageHeight()) / baseWidth;
+
             if (this.areaClosed != null && this.areaClosed.getMaximum() != area) {
                 this.areaClosed.setMaximum(area);
             }
             if (this.areaOpened != null && this.areaOpened.getMaximum() != area) {
                 this.areaOpened.setMaximum(area);
+            }
+            if (this.getMaxAreaOpened() > area * baseWidth) {
+                this.setMaxAreaOpened(area * baseWidth);
+            }
+            if (this.getMaxAreaClosed() > area * baseWidth) {
+                this.setMaxAreaClosed(area * baseWidth);
             }
             if (this.autocalibrator == true) {
                 if (this.YChannel != null) {
